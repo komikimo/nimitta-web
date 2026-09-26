@@ -143,6 +143,34 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .tap-zone{position:absolute;left:0;right:0;bottom:0;height:50%}
 .hint{position:absolute;left:24px;bottom:calc(8px + env(safe-area-inset-bottom));height:24px;width:calc(100% - 48px);transition:opacity .9s ease-out}
 
+/* Sit: this week's seven days (C6) */
+.strip{display:flex;gap:8px;padding:4px 0 10px}
+.strip i{width:20px;height:20px;background:var(--bluewash);display:block}
+.strip i.today{box-shadow:inset 0 0 0 1px var(--ink3)}
+.strip i.p{background:var(--blue2);box-shadow:none}
+.strip i.g{background:var(--gold);background-clip:content-box;border:1.5px solid var(--gold);padding:1.5px;box-shadow:none}
+.change{padding-top:14px}
+.change .row{padding-top:4px}
+
+/* You: the last 12 months (C8) */
+.year{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.year::-webkit-scrollbar{display:none}
+.year-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);grid-auto-columns:13px;gap:3px;width:max-content}
+.year-grid button{width:13px;height:13px;background:var(--bluewash);padding:0}
+.year-grid button.s1{background:color-mix(in srgb,var(--blue2) 40%,var(--bg))}
+.year-grid button.s2{background:color-mix(in srgb,var(--blue2) 70%,var(--bg))}
+.year-grid button.s3{background:var(--blue2)}
+.year-grid button.ring{box-shadow:inset 0 0 0 1.5px var(--gold)}
+.year-grid button.future{visibility:hidden}
+
+/* The exit panel (C7): readable in an emergency, quiet otherwise */
+.exit{position:absolute;left:24px;right:24px;top:15%;bottom:50%;display:flex;flex-direction:column;justify-content:center;gap:18px;opacity:0;transition:opacity var(--screen) ease-in-out;pointer-events:none;color:#9DAAB8;font-family:var(--sans)}
+.exit.on{opacity:1;pointer-events:auto}
+.exit .t{font-family:var(--serif);font-size:24px;letter-spacing:-.2px}
+.exit button{display:block;text-align:left;min-height:44px;color:#9DAAB8;font-size:16px;font-weight:500;width:100%}
+.exit small{display:block;font-size:12px;letter-spacing:.2px;color:#65737F;font-weight:400;margin-top:2px}
+.exit p{font-size:14px;color:#65737F;line-height:1.45}
+
 /* Self-test */
 .selftest{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;padding:24px;white-space:pre-wrap}
 </style>
@@ -1585,7 +1613,8 @@ var NimittaScore = (function () {
   /** Sittings dated in [weekStart, weekStart + 7), keeping only the first three per day by start time. */
   function countedSessions(sessions, start) {
     var end = addDays(start, 7), byDay = {}, out = [];
-    sessions.forEach(function (s) { if (s.date >= start && s.date < end) (byDay[s.date] = byDay[s.date] || []).push(s); });
+    // A discarded sitting never counts, not even towards the day's three (D5.4).
+    sessions.forEach(function (s) { if (s.state !== "discarded" && s.date >= start && s.date < end) (byDay[s.date] = byDay[s.date] || []).push(s); });
     Object.keys(byDay).forEach(function (day) {
       var sorted = byDay[day].slice().sort(function (a, b) { return a.startedAt - b.startedAt; });
       out.push.apply(out, sorted.slice(0, MAX_COUNTED_PER_DAY));
@@ -1658,11 +1687,24 @@ var HINDRANCES = [
 var ANSWERS = ["Not at all", "A little", "Quite a bit", "A lot"];
 var DEFAULT_CUE = "Your mind will wander. The moment you notice, tap, and come back. That is the whole practice.";
 var EXPERIENCE = ["I'm new to this", "On and off for a while", "Several years", "Prefer not to say"];
-var AGES = ["Under 25", "25–34", "35–44", "45–54", "55–64", "65 or over", "Prefer not to say"];
-var GENDERS = ["Woman", "Man", "Another term", "Prefer not to say"];
-var WORK = ["Student", "Healthcare", "Engineering or IT", "Education", "Business or finance", "Creative", "Service or trades", "Retired", "Other", "Prefer not to say"];
+var UNDER_18 = "Under 18";
+var AGES = [UNDER_18, "18–24", "25–29", "30–34", "35–39", "40–44", "45–49", "50–54", "55–59", "60–64", "65–74", "75 or over", "Prefer not to say"];
+var SELF_DESCRIBE = "Prefer to self-describe";
+var GENDERS = ["Woman", "Man", "Non-binary", SELF_DESCRIBE, "Prefer not to say"];
+var WORK = ["Student", "Healthcare", "Engineering or IT", "Science or research", "Education", "Business or finance", "Law",
+  "Government or public service", "Creative or media", "Sales or marketing", "Service or hospitality", "Trades or manufacturing",
+  "Transport or logistics", "Agriculture", "Military or emergency services", "Homemaker", "Between jobs", "Retired", "Other",
+  "Prefer not to say"];
 var GOAL_DAYS = [1, 2, 3, 4, 5, 6, 7];
-var LENGTHS = params.get("quick") === "1" ? [1, 5, 10, 15, 20, 30, 45, 60] : [5, 10, 15, 20, 30, 45, 60];
+var LENGTHS = params.get("quick") === "1" ? [1, 5, 10, 15, 20, 30, 45, 60, 90] : [5, 10, 15, 20, 30, 45, 60, 90];
+var CUSTOM_MIN = 1, CUSTOM_MAX = 180, DISCARDS_PER_WEEK = 3, EXIT_PANEL_MS = 4000;
+/** C5: a whole number of minutes from 1 to 180, or null. Duration never enters a score. */
+function customMinutes(text) {
+  var t = String(text).trim();
+  if (!/^[0-9]{1,3}$/.test(t)) return null;
+  var n = Number(t);
+  return n >= CUSTOM_MIN && n <= CUSTOM_MAX ? n : null;
+}
 var SURVEY = [
   "Did the tap pull you out of the sitting?",
   "Did you start hunting for distraction so that you could tap?",
@@ -1691,10 +1733,10 @@ var memoryCopy = null;
 function freshState() {
   return {
     v: 1, tester: testerCode(), onboarded: false, step: 0,
-    about: { name: "", age: null, gender: null, work: null, consent: false, consentUpdatedAt: null },
+    about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
     experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
-    checkpoint: null, survey: null
+    checkpoint: null, survey: null, discards: []
   };
 }
 function testerCode() {
@@ -1725,6 +1767,26 @@ var S;
 function today() { return Score.ymd(new Date()); }
 function completedCount() { return S.sessions.filter(function (s) { return s.state === "completed"; }).length; }
 function thisWeek() { return Score.week(S.sessions, Score.weekStart(today()), S.goalDays); }
+function kept() { return S.sessions.filter(function (s) { return s.state !== "discarded"; }); }
+function discardsUsed(weekStart) {
+  return S.discards.filter(function (d) { return d.week === weekStart && !d.capped; }).length;
+}
+
+/** C6: the week just before and just after the most recent sitting, while that sitting is from today. */
+function latestChange() {
+  var t = today(), ws = Score.weekStart(t), all = kept();
+  var latest = all.reduce(function (a, b) { return !a || b.endedAt > a.endedAt ? b : a; }, null);
+  if (!latest || latest.date !== t) return null;
+  return { before: Score.week(all.filter(function (s) { return s.id !== latest.id; }), ws, S.goalDays), after: Score.week(all, ws, S.goalDays) };
+}
+
+/** C6: days still open for a practice day this week, while the goal is not met and can still be met. */
+function daysLeft(w) {
+  var t = today(), index = (Score.parseDay(t).getDay() + 6) % 7;
+  if (w.practiceDays >= S.goalDays) return null;
+  var remaining = 7 - index - (w.practiceDates[t] ? 1 : 0), needed = S.goalDays - w.practiceDays;
+  return remaining > 0 && remaining >= needed ? remaining : null;
+}
 
 /** The Cue (Dhamma §5.1): argmax of the five averages over the last 14 check-ins; the default line before 5 exist. */
 function cue() {
@@ -1750,6 +1812,7 @@ function arcSvg(size, stroke, color) {
 var ICON = {
   sit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/></svg>',
   week: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="15" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>',
+  you: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.4c1.2-2.3 3.3-3.6 5.8-3.6s4.6 1.3 5.8 3.6"/></svg>',
   back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>'
 };
 
@@ -1766,11 +1829,12 @@ function render() {
     return;
   }
   tabbar.hidden = false; app.classList.remove("no-tabs");
-  tabbar.innerHTML = [["sit", "Sit"], ["week", "Week"]].map(function (t) {
+  tabbar.innerHTML = [["sit", "Sit"], ["week", "Week"], ["you", "You"]].map(function (t) {
     return '<button class="' + (UI.tab === t[0] ? "on" : "") + '" data-action="tab" data-tab="' + t[0] + '">' + ICON[t[0]] + "<span>" + t[1] + "</span></button>";
   }).join("");
-  app.innerHTML = UI.tab === "sit" ? renderSit() : renderWeek();
+  app.innerHTML = UI.tab === "sit" ? renderSit() : UI.tab === "week" ? renderWeek() : renderYou();
   if (UI.tab === "week") countUp();
+  if (UI.tab === "you") { var y = $(".year"); if (y) y.scrollLeft = y.scrollWidth; }
 }
 
 /* Onboarding, 7 screens (revision R1): promise, account, about you, experience, commitment, the tap, reminder. */
@@ -1799,7 +1863,8 @@ function renderOnboarding() {
       '<div><div class="label">Name others see</div><input class="field" id="about-name" autocomplete="off" maxlength="40" value="' + esc(a.name) + '">' +
       '<p class="caption" style="margin-top:6px">Leagues show no names unless you choose one.</p></div>' +
       '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
-      '<div><div class="label">Gender</div>' + chips("gender", GENDERS) + "</div>" +
+      '<div><div class="label">Gender</div>' + chips("gender", GENDERS) +
+      (a.gender === SELF_DESCRIBE ? '<input class="field" id="about-self" autocomplete="off" maxlength="60" style="margin-top:8px" value="' + esc(a.genderSelf || "") + '">' : "") + "</div>" +
       '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
       '<label class="check"><input type="checkbox" id="about-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label>';
     foot = '<button class="primary" data-action="about-continue">Continue</button><button class="textlink" data-action="about-skip">Skip for now</button>';
@@ -1812,8 +1877,11 @@ function renderOnboarding() {
     body = '<h1 class="title">How many days a week will you sit?</h1>' +
       '<div class="seg">' + GOAL_DAYS.map(function (n) { return '<button class="' + (S.goalDays === n ? "on" : "") + '" data-action="onb-days" data-v="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
       '<h1 class="title" style="margin-top:12px">How long is one sitting?</h1>' +
-      '<div class="seg">' + LENGTHS.map(function (n) { return '<button class="' + (S.goalMinutes === n ? "on" : "") + '" data-action="onb-len" data-v="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
-      '<p class="secondary ink2" style="margin-top:-8px">minutes</p>' +
+      '<div class="seg">' + LENGTHS.map(function (n) { return '<button class="' + (!UI.customOpen && S.goalMinutes === n ? "on" : "") + '" data-action="onb-len" data-v="' + n + '">' + n + "</button>"; }).join("") +
+      '<button class="' + (UI.customOpen ? "on" : "") + '" data-action="onb-custom">Custom</button></div>' +
+      (UI.customOpen ? '<div class="row" style="justify-content:flex-start;align-items:center;gap:12px;margin-top:-4px"><input class="field" id="onb-custom" inputmode="numeric" maxlength="3" style="width:96px" value="' + esc(UI.customText) + '"><span class="secondary ink2">minutes</span></div>' +
+        (UI.customError ? '<p class="caption" style="margin-top:-8px">Enter whole minutes from 1 to 180.</p>' : "")
+        : '<p class="secondary ink2" style="margin-top:-8px">minutes</p>') +
       '<p class="reading ink2" style="font-style:italic;font-size:17px">Sitting every day is the tradition. But choose what you will actually do — your score is based on keeping your own word, not on choosing a bigger number.</p>';
     foot = '<button class="primary" data-action="onb-next">Continue</button>';
   } else if (step === 5) {
@@ -1834,7 +1902,8 @@ function renderSit() {
   var t = today(), w = thisWeek(), minutes = UI.sittingMinutes || S.goalMinutes, met = w.practiceDays >= S.goalDays;
   var menu = UI.menuOpen ? '<div class="menu">' + LENGTHS.map(function (n) {
     return '<button data-action="pick-minutes" data-v="' + n + '"><span>' + n + " min</span><span>" + (n === minutes ? "✓" : "") + "</span></button>";
-  }).join("") + "</div>" : "";
+  }).join("") + '<button data-action="custom-sheet"><span>Custom</span><span>' + (LENGTHS.indexOf(minutes) < 0 ? "✓" : "") + "</span></button></div>" : "";
+  var left = daysLeft(w), change = latestChange();
   var results = completedCount() >= 5
     ? '<button class="outline" data-action="survey" style="margin-top:16px">Copy my results</button>' : "";
   return '<div class="sit">' +
@@ -1843,21 +1912,51 @@ function renderSit() {
     '<div class="middle"><button class="arc-btn" data-action="arc" aria-label="' + minutes + ' min">' + arcSvg(120, 1.5, "var(--line)") +
     '<span class="ui num">' + minutes + " min</span></button>" + menu + "</div>" +
     '<p class="cue">' + esc(cue()) + "</p>" +
+    (left ? '<p class="secondary ink3" style="text-align:center;margin:-8px 0 16px">' + esc(daysLeftLine(left)) + "</p>" : "") +
     ("wakeLock" in navigator ? "" : '<p class="caption" style="text-align:center;margin-bottom:12px">' + esc(TXT.noWakeLock) + "</p>") +
     '<button class="primary" data-action="begin">Begin</button>' +
     '<div class="hairline" style="margin-top:32px"></div>' +
+    (change ? renderChange(change) : "") +
     '<div class="row secondary" style="padding:14px 0 6px"><span class="ink2">This week</span>' +
     '<span class="num"><span class="' + (met ? "gold" : "") + '">' + w.practiceDays + "</span> of " + S.goalDays + " days</span></div>" +
+    renderStrip(w, t) +
     (S.interrupted ? '<p class="caption" style="padding-bottom:6px">That one got interrupted. It still counts as a sitting you started.</p>' : "") +
     '<div class="row secondary" style="align-items:center;padding:10px 0"><span class="ink2">' + esc(TXT.tapSound) + "</span>" +
     '<button class="switch' + (S.tapSound ? " on" : "") + '" data-action="toggle-sound" role="switch" aria-checked="' + S.tapSound + '" aria-label="' + esc(TXT.tapSound) + '"></button></div>' +
     results + "</div>";
 }
 
+/* PRD §7.9's wording: "Two days left in the week. You set a goal of {n}." */
+function daysLeftLine(days) {
+  var word = ["One", "Two", "Three", "Four", "Five", "Six", "Seven"][Math.min(Math.max(days, 1), 7) - 1];
+  return word + (days === 1 ? " day left in the week." : " days left in the week.") + " You set a goal of " + S.goalDays + ".";
+}
+
+/* C6: "Your week: 60 → 73", with the component rows that moved, in the Week screen's own words. */
+function renderChange(c) {
+  var b = c.before, a = c.after, rows = "";
+  function row(name, frac) { return '<div class="row secondary"><span class="ink2">' + name + '</span><span class="ink2 num">' + frac + "</span></div>"; }
+  if (b.practiceDays !== a.practiceDays) rows += row("Showing up", a.practiceDays + " of " + S.goalDays + " days");
+  if (b.completed !== a.completed || b.started !== a.started) rows += row("Staying", a.completed + " of " + a.started + " sittings");
+  if (b.present !== a.present || b.completed !== a.completed) rows += row("Noticing", a.present + " of " + a.completed + " sittings");
+  return '<div class="change"><div class="ui num">Your week: ' + Score.score(b) + " → " + Score.score(a) + "</div>" + rows + "</div>";
+}
+
+/* C6: this week's seven days, Monday first. Today fills when a sitting is completed; a met goal wears the gold ring. */
+function renderStrip(w, t) {
+  var ws = Score.weekStart(t), met = w.practiceDays >= S.goalDays;
+  return '<div class="strip">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
+    var d = Score.addDays(ws, i), practised = !!w.practiceDates[d];
+    var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+    var label = practised && met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no sitting";
+    return '<i class="' + (practised ? (met ? "g" : "p") : d === t ? "today" : "") + '" role="img" aria-label="' + label + '"></i>';
+  }).join("") + "</div>";
+}
+
 /* Week (UX §7.5): the score with its three components and raw fractions, the 30-day grid, returns per sitting. */
 function renderWeek() {
   var t = today(), first = Score.addDays(t, -29);
-  if (!S.sessions.some(function (s) { return s.date >= first; })) return '<div class="empty reading">Nothing here yet. It starts when you sit.</div>';
+  if (!kept().some(function (s) { return s.date >= first; })) return '<div class="empty reading">Nothing here yet. It starts when you sit.</div>';
   var w = thisWeek(), sc = Score.score(w);
   var goal = Math.max(w.goalDays, 1);
   var adherence = Math.min(w.practiceDays, goal) / goal;           // display only; never an input to the score
@@ -1891,6 +1990,55 @@ function renderWeek() {
     '<div class="hairline" style="margin:32px 0"></div>' +
     '<div class="label">Returns per sitting</div>' + returnsChart(first, t) +
     '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p></div>';
+}
+
+/* You (C8, D5): the last 12 months, shaded by completed sittings (never minutes), and the hours this tester sits. */
+function renderYou() {
+  var t = today(), first = Score.addDays(Score.weekStart(t), -7 * 52), cache = {}, completed = {};
+  kept().forEach(function (s) { if (s.state === "completed") completed[s.date] = (completed[s.date] || 0) + 1; });
+  var cells = "";
+  for (var i = 0; i < 53 * 7; i++) {
+    var d = Score.addDays(first, i), ws = Score.weekStart(d);
+    var wk = cache[ws] || (cache[ws] = Score.week(S.sessions, ws, S.goalDays));
+    var practised = !!wk.practiceDates[d], ring = practised && wk.practiceDays >= S.goalDays, n = completed[d] || 0;
+    var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+    var label = ring ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no sitting";
+    cells += '<button class="' + (d > t ? "future" : "") + (n ? " s" + Math.min(n, 3) : "") + (ring ? " ring" : "") +
+      '" data-action="year-day" data-d="' + d + '" aria-label="' + label + '"></button>';
+  }
+  return '<div class="pad"><h1 class="display">You</h1>' +
+    '<div class="label" style="margin-top:32px">The last 12 months</div><div class="year"><div class="year-grid">' + cells + "</div></div>" +
+    '<div class="hairline" style="margin:32px 0"></div>' +
+    '<div class="label">When you sit</div>' + hourChart(t) +
+    '<p class="caption" style="margin-top:12px">Hours you started a sitting, over the last 90 days.</p></div>';
+}
+
+function hourChart(t) {
+  var first = Score.addDays(t, -89), counts = Array(24).fill(0);
+  kept().forEach(function (s) { if (s.date >= first && s.date <= t) counts[new Date(s.startedAt).getHours()]++; });
+  var top = Math.max(1, Math.max.apply(null, counts));
+  var W = Math.min(432, Math.max(260, window.innerWidth - 48)), H = 120, L = 24, B = 18, T = 6, bw = (W - L) / 24;
+  function y(v) { return T + (H - T - B) * (1 - v / top); }
+  var svg = '<line x1="' + L + '" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="var(--line)"/>' +
+    '<text x="' + (L - 6) + '" y="' + (y(top) + 3) + '" text-anchor="end">' + top + "</text>";
+  counts.forEach(function (c, h) {
+    if (c) svg += '<rect x="' + (L + h * bw + bw * 0.15).toFixed(1) + '" y="' + y(c).toFixed(1) + '" width="' + (bw * 0.7).toFixed(1) + '" height="' + (y(0) - y(c)).toFixed(1) + '" fill="var(--blue2)"/>';
+  });
+  [0, 6, 12, 18].forEach(function (h) { svg += '<text x="' + (L + h * bw + bw / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + h + "</text>"; });
+  return '<svg class="chart" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" aria-hidden="true">' + svg + "</svg>";
+}
+
+/* A day's sittings, with their lengths as plain information. Discarded ones are gone, as if they never began. */
+function openDay(d) {
+  var list = kept().filter(function (s) { return s.date === d; }).sort(function (a, b) { return a.startedAt - b.startedAt; });
+  if (!list.length) return;
+  var lines = list.map(function (s) {
+    var at = new Date(s.startedAt), time = String(at.getHours()).padStart(2, "0") + ":" + String(at.getMinutes()).padStart(2, "0");
+    var mins = Math.max(1, Math.floor(s.actualSeconds / 60));
+    return '<p class="secondary num" style="margin-top:8px">' + time + " · " + mins + " min · " + (s.state === "completed" ? "completed" : "unfinished") + "</p>";
+  }).join("");
+  openSheet('<h2 class="title">' + esc(Score.parseDay(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })) + "</h2>" +
+    lines + '<p class="caption" style="margin-top:16px">Length is recorded, but it is never scored.</p>');
 }
 
 /* Daily average over completed sittings only; a day with none is a gap, never a zero (D3.8). */
@@ -2028,10 +2176,12 @@ function begin(minutes, practice) {
   unlockAudio();
   holdScreenOn();
   UI.menuOpen = false; closeSheet();
-  SES = { id: uuid(), phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0 };
+  SES = { id: uuid(), phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0,
+          canDiscard: true, cappedRecorded: false, panelTimer: null };
   document.documentElement.classList.add("sitting"); setThemeColor("#05080C");
   var layer = $("#session");
-  layer.innerHTML = '<div class="end-zone" id="endZone"><span class="hold" id="holdLabel">Hold to end</span></div>' +
+  layer.innerHTML = '<div class="end-zone" id="endZone"></div>' +
+    '<div class="exit" id="exitPanel" aria-hidden="true"></div>' +
     '<div class="tap-zone" id="tapZone"><svg class="hint" id="hint" viewBox="0 0 342 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24 Q171 0 342 24" fill="none" stroke="#1A2836" stroke-width="1"/></svg></div>';
   layer.style.transition = "none"; layer.style.opacity = 0; layer.hidden = false;
   bindSessionGestures();
@@ -2058,7 +2208,7 @@ function tick() {
 }
 
 function bindSessionGestures() {
-  var tapZone = $("#tapZone"), endZone = $("#endZone"), label = $("#holdLabel"), holdTimer = null;
+  var tapZone = $("#tapZone"), endZone = $("#endZone"), panel = $("#exitPanel");
   var layer = $("#session");
   layer.addEventListener("touchstart", function (e) { e.preventDefault(); }, { passive: false });   // no zoom, no selection
   layer.addEventListener("contextmenu", function (e) { e.preventDefault(); });
@@ -2070,14 +2220,41 @@ function bindSessionGestures() {
     tapClick();                                          // no visual response at all
     if (SES.taps.length === 1) writeCheckpoint();        // presence rests on the first tap (D4.4)
   });
-  function cancel() { clearTimeout(holdTimer); holdTimer = null; label.style.opacity = 0; }
-  endZone.addEventListener("pointerdown", function (e) {
+  // C7: one tap on the top 15% shows End, Discard and Keep sitting for four seconds.
+  endZone.addEventListener("pointerup", function (e) { e.preventDefault(); revealExitPanel(); });
+  // The session layer suppresses clicks, so the panel acts on pointerup.
+  panel.addEventListener("pointerup", function (e) {
+    var b = e.target.closest("[data-exit]");
+    if (!b || !SES || SES.phase !== "running") return;
     e.preventDefault();
-    if (!SES || SES.phase !== "running") return;
-    label.style.opacity = 1;
-    holdTimer = setTimeout(function () { label.style.opacity = 0; finish("held", Date.now()); }, 1000);
+    var choice = b.dataset.exit;
+    if (choice === "keep") hideExitPanel();
+    else if (choice === "end") finish("ended", Date.now());
+    else if (choice === "discard") finish(SES.canDiscard ? "discarded" : "ended", Date.now());
   });
-  ["pointerup", "pointerleave", "pointercancel"].forEach(function (t) { endZone.addEventListener(t, cancel); });
+}
+
+function revealExitPanel() {
+  if (!SES || SES.phase !== "running") return;
+  var week = Score.weekStart(today()), panel = $("#exitPanel");
+  SES.canDiscard = discardsUsed(week) < DISCARDS_PER_WEEK;
+  if (!SES.canDiscard && !SES.cappedRecorded && !SES.practice) {
+    S.discards.push({ at: Date.now(), week: week, capped: true });   // so we can see whether the cap is ever reached
+    SES.cappedRecorded = true; save();
+  }
+  panel.innerHTML = '<div class="t">End this sitting?</div>' +
+    '<button data-exit="end">End<small>keeps it as an unfinished sitting</small></button>' +
+    (SES.canDiscard ? '<button data-exit="discard">Discard<small>removes it completely</small></button>'
+      : "<p>You have used your three discards this week. Ending now will save this as an unfinished sitting.</p>") +
+    '<button data-exit="keep">Keep sitting</button>';
+  panel.classList.add("on"); panel.setAttribute("aria-hidden", "false");
+  clearTimeout(SES.panelTimer);
+  SES.panelTimer = setTimeout(hideExitPanel, EXIT_PANEL_MS);
+}
+function hideExitPanel() {
+  var panel = $("#exitPanel"); if (!panel) return;
+  panel.classList.remove("on"); panel.setAttribute("aria-hidden", "true");
+  if (SES) clearTimeout(SES.panelTimer);
 }
 
 /* Time away (D1.2): 180 s in total per sitting. Ending for time away dates the end to the moment the page was left. */
@@ -2118,25 +2295,30 @@ function record(id, startedAt, plannedMs, taps, elapsedMs, state, ending) {
     state: state, ending: ending, taps: kept, tapCount: kept.length, checkIn: null };
 }
 
-/** reason: completed | held | away */
+/** reason: completed | ended | discarded | away */
 function finish(reason, endedAt) {
   if (!SES || SES.phase !== "running") return;
-  clearInterval(SES.timer);
+  clearInterval(SES.timer); clearTimeout(SES.panelTimer);
   SES.phase = "leaving";
   var elapsed = Math.max(0, endedAt - SES.startedAt);
-  var state = reason === "completed" ? "completed" : elapsed >= MINIMUM_STORED_MS ? "incomplete" : null;
-  if (reason !== "away") strike("closing");   // the bell closes a sitting ended on purpose, never an interruption (D1.4)
+  var state = reason === "completed" ? "completed" : elapsed < MINIMUM_STORED_MS ? null : reason === "discarded" ? "discarded" : "incomplete";
+  // The bell closes a sitting ended on purpose; an interruption or a discard is left unmarked (D1.4, D5.4).
+  if (reason === "completed" || reason === "ended") strike("closing");
 
   var stored = null, wasPractice = SES.practice;
   if (!wasPractice) {
     S.checkpoint = null;
     if (state) { stored = record(SES.id, SES.startedAt, SES.plannedMs, SES.taps, elapsed, state, reason); S.sessions.push(stored); }
+    // Kept on the phone to count against the cap, in no ratio, never in the results as a sitting (D5.4). Under 60 s it
+    // is not stored either way and costs no discard.
+    if (state === "discarded") S.discards.push({ at: Date.now(), week: Score.weekStart(today()), capped: false });
     S.interrupted = reason === "away" && !!stored;
     if (stored && state === "completed") S.pendingCheckIn = stored.id;
     save();
   }
 
   var layer = $("#session"), fade = reason === "away" ? 0 : ms(1400);
+  hideExitPanel();
   if (wasPractice) { S.step = 6; save(); }
   render();
   if (!wasPractice && stored && state === "completed") openCheckIn(stored.id);
@@ -2248,7 +2430,7 @@ function resultsText() {
   function clock(ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
   function time(t) { var d = new Date(t); return Score.ymd(d) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
   var device = /iPhone|iPad|iPod/.test(navigator.userAgent) ? "iPhone" : /Android/.test(navigator.userAgent) ? "Android" : "other";
-  var sessions = S.sessions.slice().sort(function (a, b) { return a.startedAt - b.startedAt; });
+  var sessions = kept().sort(function (a, b) { return a.startedAt - b.startedAt; });
   var completed = sessions.filter(function (s) { return s.state === "completed"; }).length;
   var lines = [
     "Nimitta Phase 0 results",
@@ -2259,11 +2441,13 @@ function resultsText() {
   ];
   sessions.forEach(function (s, n) {
     lines.push((n + 1) + ". " + time(s.startedAt) + " · planned " + Math.round(s.plannedSeconds / 60) + " min · sat " + clock(s.actualSeconds * 1000) +
-      " · " + s.state + (s.ending && s.ending !== "completed" ? " (" + { held: "held to end", away: "away too long", closed: "page closed" }[s.ending] + ")" : "") +
+      " · " + s.state + (s.ending && s.ending !== "completed" ? " (" + { held: "held to end", ended: "ended", away: "away too long", closed: "page closed" }[s.ending] + ")" : "") +
       " · " + s.tapCount + (s.tapCount === 1 ? " tap" : " taps") + (s.taps.length ? " at " + s.taps.map(clock).join(" ") : ""));
     if (s.checkIn) lines.push("   check-in: " + HINDRANCES.map(function (h) { var v = s.checkIn[h.key]; return h.name + " " + (v === undefined || v === null ? "-" : ANSWERS[v]); }).join(", "));
     else if (s.state === "completed") lines.push("   check-in: skipped");
   });
+  var used = S.discards.filter(function (d) { return !d.capped; }).length, capped = S.discards.length - used;
+  lines.push("Discards: " + used + " · stopped by the weekly limit: " + capped);
   var sv = S.survey || { answers: [null, null, null], notes: "" };
   lines.push("", "Questions");
   SURVEY.forEach(function (q, i) { lines.push((i + 1) + ". " + q + " " + (sv.answers[i] === null ? "-" : ANSWERS[sv.answers[i]])); });
@@ -2297,12 +2481,31 @@ var actions = {
   "why": function () { openSheet(WHY); },
   "close-sheet": function () { closeSheet(); if (!S.warned && S.onboarded) { S.warned = true; save(); } },
 
-  "onb-next": function () { S.step = Math.min(6, S.step + 1); if (S.step === 2) UI.draftAbout = Object.assign({}, S.about); save(); render(); window.scrollTo(0, 0); },
-  "about-pick": function (el) { var f = el.dataset.f; UI.draftAbout.name = $("#about-name").value; UI.draftAbout.consent = $("#about-consent").checked;
-    UI.draftAbout[f] = UI.draftAbout[f] === el.dataset.v ? null : el.dataset.v; var y = window.scrollY; render(); window.scrollTo(0, y); },
+  "onb-next": function () {
+    if (S.step === 4 && UI.customOpen) {
+      var n = customMinutes($("#onb-custom").value);
+      if (n === null) { UI.customText = $("#onb-custom").value; UI.customError = true; render(); return; }
+      S.goalMinutes = n; UI.customOpen = false; UI.customError = false;
+    }
+    S.step = Math.min(6, S.step + 1); if (S.step === 2) UI.draftAbout = Object.assign({}, S.about); save(); render(); window.scrollTo(0, 0);
+  },
+  "about-pick": function (el) {
+    var f = el.dataset.f, v = el.dataset.v;
+    if (f === "age" && v === UNDER_18) {
+      // D5.1: for someone under 18 nothing else is kept, research consent is never set, and the screen ends here.
+      S.about = { name: "", age: UNDER_18, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null };
+      S.step = 3; save(); render(); window.scrollTo(0, 0);
+      return;
+    }
+    UI.draftAbout.name = $("#about-name").value; UI.draftAbout.consent = $("#about-consent").checked;
+    var self = $("#about-self"); if (self) UI.draftAbout.genderSelf = self.value;
+    UI.draftAbout[f] = UI.draftAbout[f] === v ? null : v; var y = window.scrollY; render(); window.scrollTo(0, y);
+  },
   "about-continue": function () {
     var d = UI.draftAbout, consent = $("#about-consent").checked;
     d.name = $("#about-name").value.trim();
+    var self = $("#about-self");
+    d.genderSelf = d.gender === SELF_DESCRIBE && self ? self.value.trim().slice(0, 60) : "";
     if (consent !== S.about.consent) d.consentUpdatedAt = new Date().toISOString();   // changing the box stamps the time (R5)
     d.consent = consent;
     S.about = d; S.step = 3; save(); render(); window.scrollTo(0, 0);
@@ -2310,7 +2513,21 @@ var actions = {
   "about-skip": function () { S.step = 3; save(); render(); window.scrollTo(0, 0); },
   "onb-exp": function (el) { S.experience = Number(el.dataset.v); save(); render(); setTimeout(function () { if (S.step === 3) { S.step = 4; save(); render(); } }, 220); },
   "onb-days": function (el) { S.goalDays = Number(el.dataset.v); save(); render(); },
-  "onb-len": function (el) { S.goalMinutes = Number(el.dataset.v); save(); render(); },
+  "onb-len": function (el) { S.goalMinutes = Number(el.dataset.v); UI.customOpen = false; UI.customError = false; save(); render(); },
+  "onb-custom": function () { UI.customOpen = true; UI.customError = false; UI.customText = LENGTHS.indexOf(S.goalMinutes) < 0 ? String(S.goalMinutes) : ""; render(); var f = $("#onb-custom"); if (f) f.focus(); },
+  "custom-sheet": function () {
+    UI.menuOpen = false; render();
+    openSheet('<div class="row" style="justify-content:flex-start;align-items:center;gap:12px"><input class="field" id="sit-custom" inputmode="numeric" maxlength="3" style="width:96px" value="' + (UI.sittingMinutes || S.goalMinutes) + '"><span class="secondary ink2">minutes</span></div>' +
+      '<p class="caption" id="sit-custom-error" style="margin-top:8px" hidden>Enter whole minutes from 1 to 180.</p>' +
+      '<button class="primary" data-action="custom-set" style="margin-top:20px">Continue</button>');
+    var f = $("#sit-custom"); if (f) f.focus();
+  },
+  "custom-set": function () {
+    var n = customMinutes($("#sit-custom").value);
+    if (n === null) { $("#sit-custom-error").hidden = false; return; }
+    UI.sittingMinutes = n; closeSheet(); render();
+  },
+  "year-day": function (el) { openDay(el.dataset.d); },
   "onb-try": function () { begin(1, true); },
   "onb-finish": function () {
     var t = $("#onb-time"); if (t && t.value) S.reminder = t.value;
