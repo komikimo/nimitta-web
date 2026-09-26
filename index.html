@@ -1,0 +1,2383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A1017" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<title>Nimitta</title>
+<!--
+  Nimitta, web test instrument for Phase 0. One file, no dependencies, everything stored in this browser.
+  Copy is verbatim from the specs (PRD, UX spec, Dhamma Framework, Decisions Log, revision R1–R6) except the strings
+  marked NOT-IN-SPEC below, which exist only because a browser needs them.
+  The score is the integer formula of PracticeScore.swift; ?selftest=1 checks it against the shared 20-week fixture,
+  and tools/check_web_score.mjs does the same in CI.
+-->
+<style>
+:root{
+  --bg:#FAF9F6;--surface:#FFFFFF;--ink:#0E1B2A;--ink2:#4A5A6B;--ink3:#8B98A5;--line:#E4E1DA;
+  --blue:#12355B;--blue2:#2F6FB2;--bluewash:#EAF0F7;--gold:#B8912F;--goldwash:#F3ECD9;
+  --session:#05080C;--session-line:#1A2836;
+  --serif:"New York",ui-serif,"Iowan Old Style",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
+  --screen:320ms;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0A1017;--surface:#121B26;--ink:#EDEAE3;--ink2:#9DAAB8;--ink3:#65737F;--line:#1E2A38;
+    --blue:#7FB0E0;--blue2:#4E8CC4;--bluewash:#16273A;--gold:#D9B64E;--goldwash:#2A2414}
+}
+@media (prefers-reduced-motion:reduce){:root{--screen:150ms}}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overscroll-behavior:none;min-height:100vh;min-height:100dvh}
+html.sitting,html.sitting body{background:var(--session);overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+input,textarea{font:inherit;color:inherit}
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
+#app.no-tabs{padding-bottom:env(safe-area-inset-bottom)}
+
+/* Type roles (UX spec §3) */
+.display{font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:-.4px;line-height:1.15}
+.title{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:-.2px;line-height:1.25}
+.reading{font-family:var(--serif);font-size:19px;line-height:1.55}
+.ui{font-size:16px;font-weight:500}
+.secondary{font-size:14px}
+.caption{font-size:12px;letter-spacing:.2px;color:var(--ink3);line-height:1.4}
+.score{font-size:64px;font-weight:300;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1}
+.ink2{color:var(--ink2)}.ink3{color:var(--ink3)}.gold{color:var(--gold)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Pieces */
+.pad{padding:24px 24px 32px}
+.hairline{height:1px;background:var(--line)}
+.primary{display:block;width:100%;height:52px;border-radius:8px;background:var(--blue);color:var(--bg);font-size:16px;font-weight:500}
+.primary:active{opacity:.85}
+.outline{display:block;width:100%;height:52px;border-radius:8px;border:1px solid var(--line);font-size:16px;font-weight:500;color:var(--ink)}
+.textlink{color:var(--blue2);font-size:14px;padding:6px 0}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.label{font-size:14px;color:var(--ink2);margin-bottom:10px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{min-width:44px;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:16px;font-weight:500;font-variant-numeric:tabular-nums}
+.seg button.on{background:var(--bluewash);border-color:var(--bluewash)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{min-height:36px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.chips button.on{background:var(--bluewash);border-color:var(--bluewash)}
+.options button{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 12px;text-align:left;font-size:16px;font-weight:500}
+.options button+button{border-top:1px solid var(--line)}
+.options button.on{background:var(--bluewash)}
+.radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ink3);flex:none;position:relative}
+.on .radio{border-color:var(--ink)}
+.on .radio::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--ink)}
+.switch{width:51px;height:31px;border-radius:16px;background:var(--line);position:relative;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.switch.on{background:var(--blue2)}.switch.on::after{left:22px}
+.field{width:100%;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:16px}
+textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
+.check{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--ink2);cursor:pointer}
+.check input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--blue2)}
+.empty{min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 40px;color:var(--ink2)}
+.back{width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-left:-12px}
+
+/* Onboarding */
+.onb{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;padding:12px 24px 24px}
+.onb-top{display:flex;align-items:center;gap:16px;height:36px}
+.progress{flex:1;display:flex;gap:6px}
+.progress i{flex:1;height:2px;background:var(--line)}
+.progress i.on{background:var(--blue)}
+.skip{font-size:14px;color:var(--ink3);padding:8px 0}
+.onb-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:24px 0}
+.onb-body.top{justify-content:flex-start}
+.onb-foot{display:flex;flex-direction:column;gap:12px;align-items:center}
+
+/* Sit */
+.sit{display:flex;flex-direction:column;min-height:calc(100dvh - 64px - env(safe-area-inset-bottom) - env(safe-area-inset-top));padding:24px 24px 16px}
+.sit .middle{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:200px}
+.arc-btn{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center}
+.arc-btn svg{position:absolute;inset:0}
+.menu{position:absolute;top:calc(50% + 66px);left:50%;transform:translateX(-50%);width:200px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;z-index:5}
+.menu button{display:flex;justify-content:space-between;width:100%;height:44px;padding:0 16px;align-items:center;font-size:16px;font-variant-numeric:tabular-nums}
+.menu button+button{border-top:1px solid var(--line)}
+.cue{font-family:var(--serif);font-size:17px;line-height:1.45;color:var(--ink2);text-align:center;margin:0 4px 16px}
+
+/* Tab bar */
+#tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;border-top:1px solid var(--line);background:var(--bg);padding:6px 0 env(safe-area-inset-bottom);z-index:10}
+#tabbar button{flex:1;max-width:240px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:500;color:var(--ink3)}
+#tabbar button.on{color:var(--ink)}
+#tabbar svg{width:25px;height:25px}
+
+/* Week */
+.components{display:grid;grid-template-columns:auto auto 1fr auto;gap:14px 12px;align-items:center;font-size:14px;margin-top:24px}
+.bar{height:6px;background:var(--bluewash);position:relative;min-width:32px}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue2)}
+.grid30{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.grid30 div{aspect-ratio:1;background:var(--bluewash)}
+.grid30 div.p{background:var(--blue2)}
+.grid30 div.g{background:var(--gold);background-clip:content-box;border:1.5px solid var(--gold);padding:1.5px}
+.chart text{font-size:10px;fill:var(--ink3);font-family:var(--sans)}
+
+/* Layers */
+.layer{position:fixed;inset:0;z-index:30;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.layer-inner{max-width:480px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 24px calc(32px + env(safe-area-inset-bottom))}
+#sheet{position:fixed;inset:0;z-index:45}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.32)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;max-height:90%;overflow-y:auto;background:var(--surface);border-radius:14px 14px 0 0;padding:10px 24px calc(32px + env(safe-area-inset-bottom));animation:rise var(--screen) ease-out}
+.grabber{width:36px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 20px}
+@keyframes rise{from{transform:translateY(100%)}to{transform:none}}
+
+/* Check-in */
+.ci{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;max-width:480px;margin:0 auto;padding:calc(40px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
+.ci-viewport{flex:1;overflow:hidden;margin-top:32px;touch-action:pan-y}
+.ci-pages{display:flex;height:100%;transition:transform var(--screen) ease-in-out}
+.ci-page{flex:0 0 100%;padding-right:1px}
+.dots{display:flex;gap:8px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--ink2)}
+
+/* The sitting: ignores the theme (UX spec §2) */
+#session{position:fixed;inset:0;z-index:60;background:var(--session);opacity:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.end-zone{position:absolute;top:0;left:0;right:0;height:15%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:16px}
+.hold{font-size:12px;letter-spacing:.2px;color:var(--session-line);opacity:0;transition:opacity var(--screen) ease-in-out}
+.tap-zone{position:absolute;left:0;right:0;bottom:0;height:50%}
+.hint{position:absolute;left:24px;bottom:calc(8px + env(safe-area-inset-bottom));height:24px;width:calc(100% - 48px);transition:opacity .9s ease-out}
+
+/* Self-test */
+.selftest{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;padding:24px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<nav id="tabbar" hidden></nav>
+<div id="layer" class="layer" hidden></div>
+<div id="sheet" hidden></div>
+<div id="session" hidden></div>
+
+<!-- The shared scoring fixture, NimittaTests/Fixtures/practice-score-weeks.json, embedded verbatim.
+     tools/check_web_score.mjs fails CI if this copy and the file ever differ; run it with --write to refresh. -->
+<script type="application/json" id="score-fixture">
+{
+  "description": "Shared Practice Score fixture (PRD §8, Architecture §4, Decisions D2 and D3.1). Generated by tools/make_score_fixture.py; read by NimittaTests/PracticeScoreFixtureTests.swift and db/tests/compute_week_fixture.sql.",
+  "weeks": [
+    {
+      "name": "PRD §8 worked example: 4 started on 4 days, 3 completed, all with a tap; 3 practice days, 73",
+      "week_start": "2026-06-01",
+      "goal_days": 5,
+      "sessions": [
+        {
+          "id": "6cc2ab48-8d92-55ee-b465-76ef402fa318",
+          "local_date": "2026-06-01",
+          "started_at": "2026-06-01T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 3
+        },
+        {
+          "id": "62602c2e-9be8-5a57-91ea-96fceda45b26",
+          "local_date": "2026-06-02",
+          "started_at": "2026-06-02T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "0d5c0ccf-682b-5ef8-b5ff-8685ecfbe0f4",
+          "local_date": "2026-06-03",
+          "started_at": "2026-06-03T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 5
+        },
+        {
+          "id": "3be042b5-11f4-5141-b8a1-405d126e5ee2",
+          "local_date": "2026-06-04",
+          "started_at": "2026-06-04T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 2
+        }
+      ],
+      "expected": {
+        "practice_days": 3,
+        "started": 4,
+        "completed": 3,
+        "present": 3,
+        "score": 73
+      }
+    },
+    {
+      "name": "Empty week",
+      "week_start": "2026-06-08",
+      "goal_days": 5,
+      "sessions": [],
+      "expected": {
+        "practice_days": 0,
+        "started": 0,
+        "completed": 0,
+        "present": 0,
+        "score": 0
+      }
+    },
+    {
+      "name": "Goal met exactly, every sitting noticed",
+      "week_start": "2026-06-15",
+      "goal_days": 3,
+      "sessions": [
+        {
+          "id": "c5fcf63e-e86c-56f8-8df9-e288a9941ae8",
+          "local_date": "2026-06-15",
+          "started_at": "2026-06-15T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 2
+        },
+        {
+          "id": "657fae01-a42a-508e-9f7f-68528c53b181",
+          "local_date": "2026-06-17",
+          "started_at": "2026-06-17T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 2
+        },
+        {
+          "id": "fd13f3f3-bcda-53bd-a407-e47651e041f5",
+          "local_date": "2026-06-19",
+          "started_at": "2026-06-19T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 2
+        }
+      ],
+      "expected": {
+        "practice_days": 3,
+        "started": 3,
+        "completed": 3,
+        "present": 3,
+        "score": 100
+      }
+    },
+    {
+      "name": "More days than the goal; one sitting without a tap",
+      "week_start": "2026-06-22",
+      "goal_days": 3,
+      "sessions": [
+        {
+          "id": "fe42c541-8878-556f-8ff7-8a3b81ffda0b",
+          "local_date": "2026-06-22",
+          "started_at": "2026-06-22T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "2a299770-05d7-55ec-aaaf-9363bb3e2ca2",
+          "local_date": "2026-06-23",
+          "started_at": "2026-06-23T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "4dae6402-3caf-543b-b551-3a20d3b3587d",
+          "local_date": "2026-06-24",
+          "started_at": "2026-06-24T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "545e915a-476c-59ad-a1ce-be499e713df6",
+          "local_date": "2026-06-25",
+          "started_at": "2026-06-25T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d78b9c89-3e98-56dc-a3e1-476d80f6f971",
+          "local_date": "2026-06-26",
+          "started_at": "2026-06-26T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "a45e7974-19d5-53b6-9049-64ae8455b45c",
+          "local_date": "2026-06-27",
+          "started_at": "2026-06-27T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d3067b97-be79-5246-8fe2-355ef2bb84f6",
+          "local_date": "2026-06-28",
+          "started_at": "2026-06-28T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 7,
+        "started": 7,
+        "completed": 7,
+        "present": 6,
+        "score": 97
+      }
+    },
+    {
+      "name": "Five sittings in one day count as one day and three sittings",
+      "week_start": "2026-06-29",
+      "goal_days": 7,
+      "sessions": [
+        {
+          "id": "bdd13072-53da-5f8a-8613-7dc64112eaa4",
+          "local_date": "2026-06-30",
+          "started_at": "2026-06-30T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "6d8916b0-f00c-5b95-bc0e-6bca4bc3209b",
+          "local_date": "2026-06-30",
+          "started_at": "2026-06-30T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "c41897aa-780d-5cbd-9572-1ed0bc3ea296",
+          "local_date": "2026-06-30",
+          "started_at": "2026-06-30T10:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "7f8f5456-d487-56b4-92bf-ea3307bd5198",
+          "local_date": "2026-06-30",
+          "started_at": "2026-06-30T12:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "22daf624-b33b-500c-85f0-1ea217d97db7",
+          "local_date": "2026-06-30",
+          "started_at": "2026-06-30T14:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 3,
+        "completed": 3,
+        "present": 3,
+        "score": 57
+      }
+    },
+    {
+      "name": "Cap: a fourth sitting's completion is not seen",
+      "week_start": "2026-07-06",
+      "goal_days": 4,
+      "sessions": [
+        {
+          "id": "aa076335-7b0e-56bd-a6f4-a183492d9015",
+          "local_date": "2026-07-06",
+          "started_at": "2026-07-06T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "85676a05-e13a-5ab8-8ac2-5cc9c133a988",
+          "local_date": "2026-07-06",
+          "started_at": "2026-07-06T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "8c3895be-073b-5b5e-adbd-0ace8dfaffa9",
+          "local_date": "2026-07-06",
+          "started_at": "2026-07-06T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "6fdb6abd-1147-5f67-b77e-89274506d23b",
+          "local_date": "2026-07-06",
+          "started_at": "2026-07-06T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 2
+        },
+        {
+          "id": "f8671384-c123-57de-b1b3-809e728edc85",
+          "local_date": "2026-07-08",
+          "started_at": "2026-07-08T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 4,
+        "completed": 1,
+        "present": 1,
+        "score": 40
+      }
+    },
+    {
+      "name": "Cap follows start time, not list order",
+      "week_start": "2026-07-13",
+      "goal_days": 4,
+      "sessions": [
+        {
+          "id": "74ce915b-640c-5316-b03f-9b0edd969efa",
+          "local_date": "2026-07-13",
+          "started_at": "2026-07-13T21:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "ceb03055-24fc-57f3-a746-f9f8129999ed",
+          "local_date": "2026-07-13",
+          "started_at": "2026-07-13T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "f08d3b04-aa39-539a-81ef-da75d37be9cb",
+          "local_date": "2026-07-13",
+          "started_at": "2026-07-13T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "b1c7d3fd-e857-5925-a53d-dc8b2df11920",
+          "local_date": "2026-07-13",
+          "started_at": "2026-07-13T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "de551b9c-77b1-52e1-9766-6b0118e77c0e",
+          "local_date": "2026-07-14",
+          "started_at": "2026-07-14T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 4,
+        "completed": 1,
+        "present": 0,
+        "score": 20
+      }
+    },
+    {
+      "name": "Only incomplete sittings; their taps do not count",
+      "week_start": "2026-07-20",
+      "goal_days": 4,
+      "sessions": [
+        {
+          "id": "68b348eb-76b6-5637-b4f3-4c289802055a",
+          "local_date": "2026-07-20",
+          "started_at": "2026-07-20T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 4
+        },
+        {
+          "id": "345be8bb-d1f9-5d5f-8e38-b62effc28d0a",
+          "local_date": "2026-07-21",
+          "started_at": "2026-07-21T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 2
+        },
+        {
+          "id": "de4837e6-7c5e-5548-9637-d4eff48e4819",
+          "local_date": "2026-07-23",
+          "started_at": "2026-07-23T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 0,
+        "started": 3,
+        "completed": 0,
+        "present": 0,
+        "score": 0
+      }
+    },
+    {
+      "name": "Completed sittings with no taps",
+      "week_start": "2026-07-27",
+      "goal_days": 5,
+      "sessions": [
+        {
+          "id": "d16c63f5-80fc-5ce6-abe9-7346db58afac",
+          "local_date": "2026-07-27",
+          "started_at": "2026-07-27T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "1b8d23ff-7394-521d-9b68-5419ab3b22ec",
+          "local_date": "2026-07-28",
+          "started_at": "2026-07-28T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "a7faab18-7d2a-502f-a1d1-cf618dce09ca",
+          "local_date": "2026-07-29",
+          "started_at": "2026-07-29T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "6699a7a7-25db-508a-b102-582da074647b",
+          "local_date": "2026-07-30",
+          "started_at": "2026-07-30T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "732d6533-a73a-5f09-890b-b16cf93e4570",
+          "local_date": "2026-07-31",
+          "started_at": "2026-07-31T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 5,
+        "started": 5,
+        "completed": 5,
+        "present": 0,
+        "score": 80
+      }
+    },
+    {
+      "name": "Exact half: 52.5 rounds up to 53",
+      "week_start": "2026-08-03",
+      "goal_days": 3,
+      "sessions": [
+        {
+          "id": "e8ffdaa2-bb1a-545d-a5f9-061c2f23ef9e",
+          "local_date": "2026-08-03",
+          "started_at": "2026-08-03T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "f3ea5163-c634-5fb6-9234-889b51b21fab",
+          "local_date": "2026-08-03",
+          "started_at": "2026-08-03T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "b91f0724-704c-567e-a6a1-f3b3b07943d8",
+          "local_date": "2026-08-03",
+          "started_at": "2026-08-03T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "0499679d-155d-5043-90cf-83f201c0bdea",
+          "local_date": "2026-08-04",
+          "started_at": "2026-08-04T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 4,
+        "completed": 3,
+        "present": 2,
+        "score": 53
+      }
+    },
+    {
+      "name": "Exact half: 37.5 rounds up to 38",
+      "week_start": "2026-08-10",
+      "goal_days": 3,
+      "sessions": [
+        {
+          "id": "b58cbfa7-0839-53e4-bb97-f0ecd995d2ed",
+          "local_date": "2026-08-10",
+          "started_at": "2026-08-10T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "093e7eb5-d03e-54ce-8c79-ab74cc471ff0",
+          "local_date": "2026-08-10",
+          "started_at": "2026-08-10T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "7d3ac0ad-ef49-5cb6-8d01-b3a0d2e29348",
+          "local_date": "2026-08-10",
+          "started_at": "2026-08-10T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "3e22c9a7-d787-5893-8b7f-215639416d96",
+          "local_date": "2026-08-11",
+          "started_at": "2026-08-11T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "2b5ddbe2-a167-5aeb-8038-27a099b77664",
+          "local_date": "2026-08-11",
+          "started_at": "2026-08-11T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "0de2aad0-6b87-565c-af6a-381224a74485",
+          "local_date": "2026-08-11",
+          "started_at": "2026-08-11T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "983af2a4-0c5d-5d88-bce1-10265f299583",
+          "local_date": "2026-08-12",
+          "started_at": "2026-08-12T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "f6052bab-45ea-5f2e-b0df-6830d4dd85ce",
+          "local_date": "2026-08-12",
+          "started_at": "2026-08-12T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "83cae135-0be9-5b6a-b340-41cd8ea15eba",
+          "local_date": "2026-08-12",
+          "started_at": "2026-08-12T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "eb632c28-d4f0-5625-9d68-95cf41276524",
+          "local_date": "2026-08-13",
+          "started_at": "2026-08-13T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "4f4030c4-55b2-51a9-a348-e747dff9759c",
+          "local_date": "2026-08-13",
+          "started_at": "2026-08-13T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "0765f0f0-b7c0-504b-b8aa-1aed2d41f445",
+          "local_date": "2026-08-13",
+          "started_at": "2026-08-13T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 12,
+        "completed": 3,
+        "present": 2,
+        "score": 38
+      }
+    },
+    {
+      "name": "Exact half: 22.5 rounds up to 23",
+      "week_start": "2026-08-17",
+      "goal_days": 6,
+      "sessions": [
+        {
+          "id": "f8a9232d-87ab-5201-90e9-4985408578d0",
+          "local_date": "2026-08-17",
+          "started_at": "2026-08-17T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "31c204e4-c4a6-587a-9265-207f0e334303",
+          "local_date": "2026-08-17",
+          "started_at": "2026-08-17T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "16e11683-31d3-5f60-9942-84cbd1995667",
+          "local_date": "2026-08-17",
+          "started_at": "2026-08-17T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "65e42fc9-1926-525d-9a2a-af2f2b14efe9",
+          "local_date": "2026-08-18",
+          "started_at": "2026-08-18T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "2885bb49-f98c-54ee-b292-e195c00a6342",
+          "local_date": "2026-08-18",
+          "started_at": "2026-08-18T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "f528e8ed-2878-5829-8355-2cd6c9d5b706",
+          "local_date": "2026-08-18",
+          "started_at": "2026-08-18T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "a0352ae7-2468-5367-bd4a-d114852fc86a",
+          "local_date": "2026-08-19",
+          "started_at": "2026-08-19T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "16062e64-d274-5e7b-8465-e5b514008ec2",
+          "local_date": "2026-08-19",
+          "started_at": "2026-08-19T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "fbaadc69-f55a-595f-b491-d8192496c7c5",
+          "local_date": "2026-08-19",
+          "started_at": "2026-08-19T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "ee0a0990-2b90-585b-957a-497ed7e9d8b0",
+          "local_date": "2026-08-20",
+          "started_at": "2026-08-20T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "cb4e18a7-c1a4-586c-b3f8-f74810a6dcc3",
+          "local_date": "2026-08-20",
+          "started_at": "2026-08-20T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "284a48bf-7ce6-56c9-a386-39b281cbaf99",
+          "local_date": "2026-08-20",
+          "started_at": "2026-08-20T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 12,
+        "completed": 3,
+        "present": 1,
+        "score": 23
+      }
+    },
+    {
+      "name": "Sevenths: goal 7, five days",
+      "week_start": "2026-08-24",
+      "goal_days": 7,
+      "sessions": [
+        {
+          "id": "65e14076-7ff2-59f9-9946-9a9817edf3ba",
+          "local_date": "2026-08-24",
+          "started_at": "2026-08-24T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "88fc7039-5dec-5057-b188-1362b37a2648",
+          "local_date": "2026-08-25",
+          "started_at": "2026-08-25T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "c9f9452c-4141-5bdc-9af4-993619239f96",
+          "local_date": "2026-08-26",
+          "started_at": "2026-08-26T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "0982f615-e046-5a94-81c9-0296c6511405",
+          "local_date": "2026-08-27",
+          "started_at": "2026-08-27T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "ed3c1a18-dd95-5428-a2d0-e094f6f5f2c7",
+          "local_date": "2026-08-28",
+          "started_at": "2026-08-28T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "f80a5b88-b7d5-54a5-a2cf-f5ffc97dec47",
+          "local_date": "2026-08-29",
+          "started_at": "2026-08-29T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 5,
+        "started": 6,
+        "completed": 5,
+        "present": 5,
+        "score": 81
+      }
+    },
+    {
+      "name": "Duration twin A: 10-minute sittings",
+      "week_start": "2026-08-31",
+      "goal_days": 5,
+      "sessions": [
+        {
+          "id": "7c38175e-9d83-5f37-8a5a-926a0413ebba",
+          "local_date": "2026-08-31",
+          "started_at": "2026-08-31T07:00:00Z",
+          "planned_seconds": 600,
+          "actual_seconds": 600,
+          "state": "completed",
+          "tap_count": 2
+        },
+        {
+          "id": "529fbbbc-250e-5efa-8952-a133378e4ca0",
+          "local_date": "2026-09-01",
+          "started_at": "2026-09-01T07:00:00Z",
+          "planned_seconds": 600,
+          "actual_seconds": 600,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "0d2711e9-bc31-5e47-b16e-543c7a1527a1",
+          "local_date": "2026-09-02",
+          "started_at": "2026-09-02T07:00:00Z",
+          "planned_seconds": 600,
+          "actual_seconds": 120,
+          "state": "incomplete",
+          "tap_count": 1
+        }
+      ],
+      "expected": {
+        "practice_days": 2,
+        "started": 3,
+        "completed": 2,
+        "present": 1,
+        "score": 50
+      }
+    },
+    {
+      "name": "Duration twin B: 45-minute sittings score the same",
+      "week_start": "2026-09-07",
+      "goal_days": 5,
+      "sessions": [
+        {
+          "id": "b40b3053-a618-5459-8d1b-809c2288d2c4",
+          "local_date": "2026-09-07",
+          "started_at": "2026-09-07T07:00:00Z",
+          "planned_seconds": 2700,
+          "actual_seconds": 2700,
+          "state": "completed",
+          "tap_count": 2
+        },
+        {
+          "id": "657df297-3402-58ee-8982-a59aaa639924",
+          "local_date": "2026-09-08",
+          "started_at": "2026-09-08T07:00:00Z",
+          "planned_seconds": 2700,
+          "actual_seconds": 2700,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "b826326b-2d91-5e77-8537-46c089405f96",
+          "local_date": "2026-09-09",
+          "started_at": "2026-09-09T07:00:00Z",
+          "planned_seconds": 2700,
+          "actual_seconds": 2000,
+          "state": "incomplete",
+          "tap_count": 1
+        }
+      ],
+      "expected": {
+        "practice_days": 2,
+        "started": 3,
+        "completed": 2,
+        "present": 1,
+        "score": 50
+      }
+    },
+    {
+      "name": "Week boundaries: the Sunday before and Monday after are excluded",
+      "week_start": "2026-09-14",
+      "goal_days": 3,
+      "sessions": [
+        {
+          "id": "6bbec42f-9349-5c34-873d-b4bb68bdbac3",
+          "local_date": "2026-09-13",
+          "started_at": "2026-09-13T20:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d2aa7ca0-f721-55a5-9154-49cc6773c399",
+          "local_date": "2026-09-21",
+          "started_at": "2026-09-21T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "6b6f8fba-bed0-5ce8-baf6-5243866b7623",
+          "local_date": "2026-09-20",
+          "started_at": "2026-09-20T23:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "8966e2c9-c640-578d-81ce-8e044a94c4ea",
+          "local_date": "2026-09-14",
+          "started_at": "2026-09-14T00:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 2,
+        "started": 2,
+        "completed": 2,
+        "present": 1,
+        "score": 73
+      }
+    },
+    {
+      "name": "Maximum: four a day for seven days, capped at 21",
+      "week_start": "2026-09-21",
+      "goal_days": 7,
+      "sessions": [
+        {
+          "id": "4be61c93-103b-535a-b399-e157ca243eb6",
+          "local_date": "2026-09-21",
+          "started_at": "2026-09-21T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "0a52ec04-c3b6-5490-b21f-cb9ca65b9b0a",
+          "local_date": "2026-09-21",
+          "started_at": "2026-09-21T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "e30aa5c4-2b67-5617-9065-9abf6698a3fa",
+          "local_date": "2026-09-21",
+          "started_at": "2026-09-21T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "14728c0b-3882-59e1-be40-3d7208642257",
+          "local_date": "2026-09-21",
+          "started_at": "2026-09-21T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "f0e6da8e-23de-5113-a981-f5ba36ff5810",
+          "local_date": "2026-09-22",
+          "started_at": "2026-09-22T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "187f63d5-1115-5f09-8c52-70b57f3fd218",
+          "local_date": "2026-09-22",
+          "started_at": "2026-09-22T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "7217c786-81ee-5572-bd70-3d9d8a3827e7",
+          "local_date": "2026-09-22",
+          "started_at": "2026-09-22T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "fb7cf9c1-2b40-5367-97a3-c0da141ba0d9",
+          "local_date": "2026-09-22",
+          "started_at": "2026-09-22T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "03353fb0-2f01-5210-a186-4648fd1bfa1a",
+          "local_date": "2026-09-23",
+          "started_at": "2026-09-23T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "22b56358-281b-52df-942b-2a0ad375d6ee",
+          "local_date": "2026-09-23",
+          "started_at": "2026-09-23T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "6ccbe6a8-c266-520d-adf2-b6dcf1c173e0",
+          "local_date": "2026-09-23",
+          "started_at": "2026-09-23T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "cd03039d-03f5-5dbf-8441-2247c2619c8f",
+          "local_date": "2026-09-23",
+          "started_at": "2026-09-23T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "57da5147-bd5d-5b6e-85fa-14f0a49ff525",
+          "local_date": "2026-09-24",
+          "started_at": "2026-09-24T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "48519395-e822-5c9a-a315-41f1e3e94382",
+          "local_date": "2026-09-24",
+          "started_at": "2026-09-24T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "8041e0c8-85d3-543f-9dd2-9ec89fffb389",
+          "local_date": "2026-09-24",
+          "started_at": "2026-09-24T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "440b80c8-7c63-5cf3-9040-487732fcccd1",
+          "local_date": "2026-09-24",
+          "started_at": "2026-09-24T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d5fd6547-9967-54c2-95cb-e9a93091f39d",
+          "local_date": "2026-09-25",
+          "started_at": "2026-09-25T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "1c57e493-537c-5a4a-acaa-c79bce187bbf",
+          "local_date": "2026-09-25",
+          "started_at": "2026-09-25T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "cbd2306f-1f55-508d-b5b6-b093fa8317c1",
+          "local_date": "2026-09-25",
+          "started_at": "2026-09-25T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "508c2371-d0c8-52f4-994e-88614bba2003",
+          "local_date": "2026-09-25",
+          "started_at": "2026-09-25T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "724d8392-0533-519b-aa92-61acff53d2b2",
+          "local_date": "2026-09-26",
+          "started_at": "2026-09-26T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "ebb03707-bda4-5b46-9f60-a5cff08551e3",
+          "local_date": "2026-09-26",
+          "started_at": "2026-09-26T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "ff56f520-d9a1-5e62-b515-0ecf751e51c9",
+          "local_date": "2026-09-26",
+          "started_at": "2026-09-26T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d7db3fea-f25a-516c-b6c7-8afa0b8c4916",
+          "local_date": "2026-09-26",
+          "started_at": "2026-09-26T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "bd37b06f-11dd-547f-8a57-649f6a28eddb",
+          "local_date": "2026-09-27",
+          "started_at": "2026-09-27T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "05344879-f1bd-51ff-93aa-ce966bfb6c09",
+          "local_date": "2026-09-27",
+          "started_at": "2026-09-27T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "1f260df1-4acd-5cf7-bd32-1ca277729525",
+          "local_date": "2026-09-27",
+          "started_at": "2026-09-27T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d21029e5-a48c-552e-9a1a-710549a0d023",
+          "local_date": "2026-09-27",
+          "started_at": "2026-09-27T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        }
+      ],
+      "expected": {
+        "practice_days": 7,
+        "started": 21,
+        "completed": 21,
+        "present": 21,
+        "score": 100
+      }
+    },
+    {
+      "name": "Mixed week",
+      "week_start": "2026-09-28",
+      "goal_days": 6,
+      "sessions": [
+        {
+          "id": "59045c3c-d241-5924-a06c-bda54a8047b7",
+          "local_date": "2026-09-28",
+          "started_at": "2026-09-28T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 2
+        },
+        {
+          "id": "823b8b71-fb1e-53a9-aa0a-5ce2424cfdd5",
+          "local_date": "2026-09-29",
+          "started_at": "2026-09-29T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 0
+        },
+        {
+          "id": "f451a586-dd9a-5034-add2-83ab171791c7",
+          "local_date": "2026-09-30",
+          "started_at": "2026-09-30T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "e05dd8f3-2a0a-5a54-a38b-8d4df3d0840f",
+          "local_date": "2026-10-01",
+          "started_at": "2026-10-01T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "68edcfc5-bfb9-58bb-8782-87f266c48676",
+          "local_date": "2026-10-01",
+          "started_at": "2026-10-01T19:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "23de4634-91e4-5555-98c7-bed672e9fc32",
+          "local_date": "2026-10-03",
+          "started_at": "2026-10-03T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 3
+        },
+        {
+          "id": "98d94e66-62c8-581c-8965-eeb68e1af25d",
+          "local_date": "2026-10-04",
+          "started_at": "2026-10-04T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 4,
+        "started": 7,
+        "completed": 4,
+        "present": 3,
+        "score": 65
+      }
+    },
+    {
+      "name": "Cap keeps the first three completions, drops later incompletes",
+      "week_start": "2026-10-05",
+      "goal_days": 5,
+      "sessions": [
+        {
+          "id": "260d9b67-913d-5d68-8a4b-75c62c933329",
+          "local_date": "2026-10-05",
+          "started_at": "2026-10-05T06:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "7cb6b9cf-7877-5d5b-b4c6-42955fcaa16d",
+          "local_date": "2026-10-05",
+          "started_at": "2026-10-05T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "7b182928-2137-5469-9770-351e5351f46e",
+          "local_date": "2026-10-05",
+          "started_at": "2026-10-05T08:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "fa2355c8-1218-578d-b78e-cc29aa2af42c",
+          "local_date": "2026-10-05",
+          "started_at": "2026-10-05T09:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "fa4d3bf0-8f10-5219-921b-881e5237e69d",
+          "local_date": "2026-10-05",
+          "started_at": "2026-10-05T10:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "983550ba-6f2a-508b-9d8c-9d964663f6d3",
+          "local_date": "2026-10-06",
+          "started_at": "2026-10-06T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        }
+      ],
+      "expected": {
+        "practice_days": 2,
+        "started": 4,
+        "completed": 4,
+        "present": 4,
+        "score": 70
+      }
+    },
+    {
+      "name": "Thirds with one completed day",
+      "week_start": "2026-10-12",
+      "goal_days": 3,
+      "sessions": [
+        {
+          "id": "fab2a500-6bda-5f8f-9878-e1ff3a21b139",
+          "local_date": "2026-10-12",
+          "started_at": "2026-10-12T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 1200,
+          "state": "completed",
+          "tap_count": 1
+        },
+        {
+          "id": "d7ae6e26-d387-5f32-a093-785f0b161bb9",
+          "local_date": "2026-10-13",
+          "started_at": "2026-10-13T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        },
+        {
+          "id": "fcacf4f4-dd60-5e63-a0d0-04b257ae1601",
+          "local_date": "2026-10-14",
+          "started_at": "2026-10-14T07:00:00Z",
+          "planned_seconds": 1200,
+          "actual_seconds": 300,
+          "state": "incomplete",
+          "tap_count": 0
+        }
+      ],
+      "expected": {
+        "practice_days": 1,
+        "started": 3,
+        "completed": 1,
+        "present": 1,
+        "score": 47
+      }
+    }
+  ]
+}
+</script>
+
+<script id="score-js">
+/* The Practice Score (PRD §8): the whole-number arithmetic of PracticeScore.swift and compute_week_exact (D3.1).
+   No fractional value enters the score. Duration is not an input: nothing here reads a sitting's length. */
+var NimittaScore = (function () {
+  "use strict";
+  var MAX_COUNTED_PER_DAY = 3;
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parseDay(s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function addDays(s, n) { var d = parseDay(s); d.setDate(d.getDate() + n); return ymd(d); }
+  /** Monday of the week containing the local date `s`. */
+  function weekStart(s) { return addDays(s, -((parseDay(s).getDay() + 6) % 7)); }
+
+  /** Sittings dated in [weekStart, weekStart + 7), keeping only the first three per day by start time. */
+  function countedSessions(sessions, start) {
+    var end = addDays(start, 7), byDay = {}, out = [];
+    sessions.forEach(function (s) { if (s.date >= start && s.date < end) (byDay[s.date] = byDay[s.date] || []).push(s); });
+    Object.keys(byDay).forEach(function (day) {
+      var sorted = byDay[day].slice().sort(function (a, b) { return a.startedAt - b.startedAt; });
+      out.push.apply(out, sorted.slice(0, MAX_COUNTED_PER_DAY));
+    });
+    return out;
+  }
+
+  /** The week's behaviour counts. `tapCount` only answers "was there a tap"; how many is never an input. */
+  function week(sessions, start, goalDays) {
+    var counted = countedSessions(sessions, start);
+    var completed = counted.filter(function (s) { return s.state === "completed"; });
+    var dates = {};
+    completed.forEach(function (s) { dates[s.date] = true; });
+    return {
+      goalDays: goalDays,
+      practiceDays: Object.keys(dates).length,
+      started: counted.length,
+      completed: completed.length,
+      present: completed.filter(function (s) { return s.tapCount > 0; }).length,
+      practiceDates: dates
+    };
+  }
+
+  /** adherence·50 + completion·30 + presence·20 as a whole-number fraction. */
+  function exactTotal(w) {
+    var goal = Math.max(w.goalDays, 1), stayingOf = Math.max(w.started, 1), noticingOf = Math.max(w.completed, 1);
+    return {
+      numerator: 50 * Math.min(w.practiceDays, goal) * stayingOf * noticingOf
+        + 30 * w.completed * goal * noticingOf
+        + 20 * w.present * goal * stayingOf,
+      denominator: goal * stayingOf * noticingOf
+    };
+  }
+
+  /** Rounded half away from zero (D2): floor((2n + d) / 2d) on whole numbers. */
+  function score(w) {
+    var t = exactTotal(w);
+    return Math.floor((2 * t.numerator + t.denominator) / (2 * t.denominator));
+  }
+
+  return { ymd: ymd, parseDay: parseDay, addDays: addDays, weekStart: weekStart,
+           countedSessions: countedSessions, week: week, exactTotal: exactTotal, score: score };
+})();
+</script>
+
+<script>
+"use strict";
+var Score = NimittaScore;
+var $ = function (s, r) { return (r || document).querySelector(s); };
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+var params = new URLSearchParams(location.search);
+var REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+function ms(n) { return REDUCED ? 150 : n; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Copy. Verbatim from the specs unless marked NOT-IN-SPEC.
+   --------------------------------------------------------------------------------------------------------------- */
+var HINDRANCES = [
+  { key: "wanting", name: "Wanting", q: "Did your mind keep reaching for something nicer than this?",
+    cue: "Instead of pushing the wanting away, watch it — notice how it arises and passes." },
+  { key: "resisting", name: "Resisting", q: "Was there irritation, or a wish for it to be over?",
+    cue: "Spend two minutes wishing yourself well before you begin." },
+  { key: "dullness", name: "Dullness", q: "Was the mind foggy, heavy, or close to sleep?",
+    cue: "Sit earlier in the day. Straighten the spine, open the eyes halfway, and place attention at the tip of the nose. Try a shorter sitting." },
+  { key: "restlessness", name: "Restlessness", q: "Was the mind busy, jumpy, or worried?",
+    cue: "Count breaths from one to ten, then begin again. Let the out-breath be longer than the in-breath. Move attention down to the abdomen." },
+  { key: "doubt", name: "Doubt", q: "Were you unsure you were doing it right, or that it's worth it?",
+    cue: "Wandering is not a sign you are failing. Look at your own 30-day record before you judge the practice." }
+];
+var ANSWERS = ["Not at all", "A little", "Quite a bit", "A lot"];
+var DEFAULT_CUE = "Your mind will wander. The moment you notice, tap, and come back. That is the whole practice.";
+var EXPERIENCE = ["I'm new to this", "On and off for a while", "Several years", "Prefer not to say"];
+var AGES = ["Under 25", "25–34", "35–44", "45–54", "55–64", "65 or over", "Prefer not to say"];
+var GENDERS = ["Woman", "Man", "Another term", "Prefer not to say"];
+var WORK = ["Student", "Healthcare", "Engineering or IT", "Education", "Business or finance", "Creative", "Service or trades", "Retired", "Other", "Prefer not to say"];
+var GOAL_DAYS = [1, 2, 3, 4, 5, 6, 7];
+var LENGTHS = params.get("quick") === "1" ? [1, 5, 10, 15, 20, 30, 45, 60] : [5, 10, 15, 20, 30, 45, 60];
+var SURVEY = [
+  "Did the tap pull you out of the sitting?",
+  "Did you start hunting for distraction so that you could tap?",
+  "Would you want to use this every day?"
+];
+var WHY = '<p class="reading"><strong>nimitta</strong> — Pali for <em>sign</em>, or <em>mark</em>.</p>' +
+  '<p class="reading" style="margin-top:14px">In this app, a nimitta is simple: the moment you notice your attention has wandered, and you mark it.</p>' +
+  '<p class="reading" style="margin-top:14px">In some meditation traditions the word also refers to a sign that appears when concentration deepens. We do not use it that way here, and this app makes no claim about your concentration or your attainment. We mean only the ordinary sense: the thing you noticed.</p>';
+var WHAT_IS_THIS = '<p class="reading">These five are described in Buddhist tradition as the <em>nīvaraṇa</em> — the five hindrances: sensory desire, ill will, dullness, restlessness and doubt. Naming them is itself part of the practice.</p>';
+
+/* NOT-IN-SPEC: strings a browser needs and the app does not have. Listed in the report for approval. */
+var TXT = {
+  storageWarning: "Your sittings are saved only in this browser, on this phone. Clearing your browser data erases them. Open this page the same way each time.",
+  tapSound: "Tap sound",
+  noWakeLock: "This browser may let the screen sleep. Set Auto-Lock to Never while you sit.",
+  pasteBack: "Then paste them into a message to the person who sent you this link.",
+  copied: "Copied",
+  copyByHand: "Copying did not work here. Select all of the text below and copy it."
+};
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Storage: one JSON document in localStorage. A private window may refuse it; the page still works for the visit.
+   --------------------------------------------------------------------------------------------------------------- */
+var KEY = "nimitta.web.v1";
+var memoryCopy = null;
+function freshState() {
+  return {
+    v: 1, tester: testerCode(), onboarded: false, step: 0,
+    about: { name: "", age: null, gender: null, work: null, consent: false, consentUpdatedAt: null },
+    experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
+    tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
+    checkpoint: null, survey: null
+  };
+}
+function testerCode() {
+  var alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", out = "", bytes = new Uint8Array(6);
+  (window.crypto || window.msCrypto).getRandomValues(bytes);
+  for (var i = 0; i < 6; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+function uuid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  var b = new Uint8Array(16); crypto.getRandomValues(b); b[6] = b[6] & 15 | 64; b[8] = b[8] & 63 | 128;
+  var h = Array.prototype.map.call(b, function (x) { return (x + 256).toString(16).slice(1); }).join("");
+  return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+}
+function loadState() {
+  try { var raw = localStorage.getItem(KEY); if (raw) return Object.assign(freshState(), JSON.parse(raw)); }
+  catch (e) { if (memoryCopy) return memoryCopy; }
+  return freshState();
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { memoryCopy = S; }
+}
+var S;
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Derived values
+   --------------------------------------------------------------------------------------------------------------- */
+function today() { return Score.ymd(new Date()); }
+function completedCount() { return S.sessions.filter(function (s) { return s.state === "completed"; }).length; }
+function thisWeek() { return Score.week(S.sessions, Score.weekStart(today()), S.goalDays); }
+
+/** The Cue (Dhamma §5.1): argmax of the five averages over the last 14 check-ins; the default line before 5 exist. */
+function cue() {
+  var recent = S.sessions.filter(function (s) { return s.checkIn && Object.keys(s.checkIn).length; })
+    .sort(function (a, b) { return b.startedAt - a.startedAt; }).slice(0, 14);
+  if (recent.length < 5) return DEFAULT_CUE;
+  var best = null, bestAvg = 0;
+  HINDRANCES.forEach(function (h) {
+    var vals = recent.map(function (s) { return s.checkIn[h.key]; }).filter(function (v) { return v !== undefined && v !== null; });
+    var avg = vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : 0;
+    if (avg > bestAvg) { bestAvg = avg; best = h; }   // ties keep the earlier hindrance
+  });
+  return best ? best.cue : DEFAULT_CUE;
+}
+
+/* The Nimitta mark as a control: a 1.5pt hairline in `line`, a 340° arc with a 20° gap at the top right (UX §5, D1.1). */
+function arcSvg(size, stroke, color) {
+  var c = size / 2, r = c - stroke / 2;
+  function p(a) { var rad = a * Math.PI / 180; return (c + r * Math.cos(rad)).toFixed(2) + " " + (c + r * Math.sin(rad)).toFixed(2); }
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + " " + size + '" aria-hidden="true"><path d="M ' + p(-50) +
+    " A " + r + " " + r + " 0 1 1 " + p(-70) + '" fill="none" stroke="' + color + '" stroke-width="' + stroke + '" stroke-linecap="round"/></svg>';
+}
+var ICON = {
+  sit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/></svg>',
+  week: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1"/><rect x="10" y="5" width="4" height="15" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>',
+  back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>'
+};
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Rendering
+   --------------------------------------------------------------------------------------------------------------- */
+var UI = { tab: "sit", menuOpen: false, sittingMinutes: null };
+
+function render() {
+  var app = $("#app"), tabbar = $("#tabbar");
+  if (!S.onboarded) {
+    tabbar.hidden = true; app.classList.add("no-tabs");
+    app.innerHTML = renderOnboarding();
+    return;
+  }
+  tabbar.hidden = false; app.classList.remove("no-tabs");
+  tabbar.innerHTML = [["sit", "Sit"], ["week", "Week"]].map(function (t) {
+    return '<button class="' + (UI.tab === t[0] ? "on" : "") + '" data-action="tab" data-tab="' + t[0] + '">' + ICON[t[0]] + "<span>" + t[1] + "</span></button>";
+  }).join("");
+  app.innerHTML = UI.tab === "sit" ? renderSit() : renderWeek();
+  if (UI.tab === "week") countUp();
+}
+
+/* Onboarding, 7 screens (revision R1): promise, account, about you, experience, commitment, the tap, reminder. */
+function renderOnboarding() {
+  var step = S.step, body = "", foot = "", skip = "", top = false;
+  var bars = [0, 1, 2, 3, 4, 5, 6].map(function (i) { return '<i class="' + (i <= step ? "on" : "") + '"></i>'; }).join("");
+  if (step === 0) {
+    body = '<h1 class="display">Nimitta</h1>' +
+      '<p class="reading">A meditation app that measures how you practise — not how your mind feels.</p>' +
+      '<p class="reading ink2">We can see whether you sat, whether you stayed, and whether you kept noticing.<br>We cannot see your mind. No app can. We will never pretend to.</p>';
+    foot = '<button class="primary" data-action="onb-next">Begin</button><button class="textlink" data-action="why">Why Nimitta?</button>';
+  } else if (step === 1) {
+    body = '<h1 class="title">Your account</h1>' +
+      '<p class="reading">Your practice syncs to your account, so you keep it if you change phone, and so you can join a league.</p>';
+    foot = '<button class="primary" data-action="onb-next">Continue</button>';   // the app shows Sign in with Apple here
+  } else if (step === 2) {
+    top = true;
+    var a = UI.draftAbout;
+    var chips = function (field, list) {
+      return '<div class="chips">' + list.map(function (o) {
+        return '<button class="' + (a[field] === o ? "on" : "") + '" data-action="about-pick" data-f="' + field + '" data-v="' + esc(o) + '">' + esc(o) + "</button>";
+      }).join("") + "</div>";
+    };
+    body = '<h1 class="title">About you</h1>' +
+      '<p class="secondary ink2" style="line-height:1.45">All optional. None of it is shown to anyone else, and none of it changes your score.</p>' +
+      '<div><div class="label">Name others see</div><input class="field" id="about-name" autocomplete="off" maxlength="40" value="' + esc(a.name) + '">' +
+      '<p class="caption" style="margin-top:6px">Leagues show no names unless you choose one.</p></div>' +
+      '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
+      '<div><div class="label">Gender</div>' + chips("gender", GENDERS) + "</div>" +
+      '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
+      '<label class="check"><input type="checkbox" id="about-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label>';
+    foot = '<button class="primary" data-action="about-continue">Continue</button><button class="textlink" data-action="about-skip">Skip for now</button>';
+  } else if (step === 3) {
+    skip = '<button class="skip" data-action="onb-next">Skip</button>';
+    body = '<h1 class="title">How long have you been practising?</h1><div class="options">' + EXPERIENCE.map(function (o, i) {
+      return '<button class="' + (S.experience === i ? "on" : "") + '" data-action="onb-exp" data-v="' + i + '"><span class="radio"></span>' + esc(o) + "</button>";
+    }).join("") + "</div>";
+  } else if (step === 4) {
+    body = '<h1 class="title">How many days a week will you sit?</h1>' +
+      '<div class="seg">' + GOAL_DAYS.map(function (n) { return '<button class="' + (S.goalDays === n ? "on" : "") + '" data-action="onb-days" data-v="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
+      '<h1 class="title" style="margin-top:12px">How long is one sitting?</h1>' +
+      '<div class="seg">' + LENGTHS.map(function (n) { return '<button class="' + (S.goalMinutes === n ? "on" : "") + '" data-action="onb-len" data-v="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
+      '<p class="secondary ink2" style="margin-top:-8px">minutes</p>' +
+      '<p class="reading ink2" style="font-style:italic;font-size:17px">Sitting every day is the tradition. But choose what you will actually do — your score is based on keeping your own word, not on choosing a bigger number.</p>';
+    foot = '<button class="primary" data-action="onb-next">Continue</button>';
+  } else if (step === 5) {
+    body = '<p class="reading">While you sit, your mind will wander. That is not failure — that is the practice.</p>' +
+      '<p class="reading">The moment you notice you have wandered, tap anywhere on the lower half of the screen, then return to the breath.</p>' +
+      '<p class="reading"><strong>Tapping more is not worse. Noticing is the whole skill.</strong></p>';
+    foot = '<button class="primary" data-action="onb-try">Try it for 60 seconds</button>';
+  } else {
+    body = '<h1 class="title">What time will you sit?</h1><input class="field" type="time" id="onb-time" value="' + esc(S.reminder) + '" style="width:150px">';
+    foot = '<button class="primary" data-action="onb-finish">Continue</button>';
+  }
+  return '<div class="onb"><div class="onb-top"><div class="progress">' + bars + "</div>" + skip + "</div>" +
+    '<div class="onb-body' + (top ? " top" : "") + '">' + body + '</div><div class="onb-foot">' + foot + "</div></div>";
+}
+
+/* Sit (UX §7.2) with the Cue above Begin (Dhamma §5.1). No score here. */
+function renderSit() {
+  var t = today(), w = thisWeek(), minutes = UI.sittingMinutes || S.goalMinutes, met = w.practiceDays >= S.goalDays;
+  var menu = UI.menuOpen ? '<div class="menu">' + LENGTHS.map(function (n) {
+    return '<button data-action="pick-minutes" data-v="' + n + '"><span>' + n + " min</span><span>" + (n === minutes ? "✓" : "") + "</span></button>";
+  }).join("") + "</div>" : "";
+  var results = completedCount() >= 5
+    ? '<button class="outline" data-action="survey" style="margin-top:16px">Copy my results</button>' : "";
+  return '<div class="sit">' +
+    '<div class="secondary ink3">' + Score.parseDay(t).toLocaleDateString("en-GB", { weekday: "long" }) + "</div>" +
+    '<h1 class="display">Sit</h1>' +
+    '<div class="middle"><button class="arc-btn" data-action="arc" aria-label="' + minutes + ' min">' + arcSvg(120, 1.5, "var(--line)") +
+    '<span class="ui num">' + minutes + " min</span></button>" + menu + "</div>" +
+    '<p class="cue">' + esc(cue()) + "</p>" +
+    ("wakeLock" in navigator ? "" : '<p class="caption" style="text-align:center;margin-bottom:12px">' + esc(TXT.noWakeLock) + "</p>") +
+    '<button class="primary" data-action="begin">Begin</button>' +
+    '<div class="hairline" style="margin-top:32px"></div>' +
+    '<div class="row secondary" style="padding:14px 0 6px"><span class="ink2">This week</span>' +
+    '<span class="num"><span class="' + (met ? "gold" : "") + '">' + w.practiceDays + "</span> of " + S.goalDays + " days</span></div>" +
+    (S.interrupted ? '<p class="caption" style="padding-bottom:6px">That one got interrupted. It still counts as a sitting you started.</p>' : "") +
+    '<div class="row secondary" style="align-items:center;padding:10px 0"><span class="ink2">' + esc(TXT.tapSound) + "</span>" +
+    '<button class="switch' + (S.tapSound ? " on" : "") + '" data-action="toggle-sound" role="switch" aria-checked="' + S.tapSound + '" aria-label="' + esc(TXT.tapSound) + '"></button></div>' +
+    results + "</div>";
+}
+
+/* Week (UX §7.5): the score with its three components and raw fractions, the 30-day grid, returns per sitting. */
+function renderWeek() {
+  var t = today(), first = Score.addDays(t, -29);
+  if (!S.sessions.some(function (s) { return s.date >= first; })) return '<div class="empty reading">Nothing here yet. It starts when you sit.</div>';
+  var w = thisWeek(), sc = Score.score(w);
+  var goal = Math.max(w.goalDays, 1);
+  var adherence = Math.min(w.practiceDays, goal) / goal;           // display only; never an input to the score
+  var completion = w.started ? w.completed / w.started : 0;
+  var presence = w.completed ? w.present / w.completed : 0;
+  function pts(v) { var r = Math.round(v * 10) / 10; return String(r); }
+  function comp(name, frac, fill, points, max) {
+    return "<span>" + name + '</span><span class="ink2 num">' + frac + "</span>" +
+      '<div class="bar" aria-hidden="true"><i style="width:' + (Math.min(Math.max(fill, 0), 1) * 100).toFixed(1) + '%"></i></div>' +
+      '<span class="ink2 num" style="text-align:right">' + pts(points) + " / " + max + "</span>";
+  }
+  var cache = {};
+  var cells = Array.from({ length: 30 }, function (_, i) {
+    var d = Score.addDays(first, i), ws = Score.weekStart(d);
+    var wk = cache[ws] || (cache[ws] = Score.week(S.sessions, ws, S.goalDays));
+    var practised = !!wk.practiceDates[d], met = practised && wk.practiceDays >= S.goalDays;
+    var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+    var label = met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no sitting";
+    return '<div class="' + (met ? "g" : practised ? "p" : "") + '" role="img" aria-label="' + label + '"></div>';
+  }).join("");
+  return '<div class="pad">' +
+    '<div class="score" id="score" data-target="' + sc + '">' + sc + "</div>" +
+    '<div class="secondary ink2" style="margin-top:6px">This week</div>' +
+    '<div class="components">' +
+    comp("Showing up", w.practiceDays + " of " + w.goalDays + " days", adherence, adherence * 50, 50) +
+    comp("Staying", w.completed + " of " + w.started + " sittings", completion, completion * 30, 30) +
+    comp("Noticing", w.present + " of " + w.completed + " sittings", presence, presence * 20, 20) +
+    "</div>" +
+    '<div class="hairline" style="margin:32px 0"></div>' +
+    '<div class="label">Days practised in the last 30</div><div class="grid30">' + cells + "</div>" +
+    '<div class="hairline" style="margin:32px 0"></div>' +
+    '<div class="label">Returns per sitting</div>' + returnsChart(first, t) +
+    '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p></div>';
+}
+
+/* Daily average over completed sittings only; a day with none is a gap, never a zero (D3.8). */
+function returnsChart(first, t) {
+  var byDay = {};
+  S.sessions.forEach(function (s) {
+    if (s.state === "completed" && s.date >= first && s.date <= t) (byDay[s.date] = byDay[s.date] || []).push(s.tapCount);
+  });
+  var pts = Array.from({ length: 30 }, function (_, i) {
+    var v = byDay[Score.addDays(first, i)];
+    return v ? { i: i, avg: v.reduce(function (a, b) { return a + b; }, 0) / v.length } : null;
+  });
+  var vals = pts.filter(Boolean).map(function (p) { return p.avg; });
+  var top = Math.max(1, Math.ceil(Math.max.apply(null, [0].concat(vals))));
+  var W = Math.min(432, Math.max(260, window.innerWidth - 48)), H = 140, L = 24, R = 6, T = 8, B = 20;
+  function x(i) { return L + i * (W - L - R) / 29; }
+  function y(v) { return T + (H - T - B) * (1 - v / top); }
+  function tick(v) { return Number.isInteger(v) ? String(v) : v.toFixed(1); }
+  var svg = "";
+  [0, top / 2, top].forEach(function (v) {
+    svg += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)"/><text x="' + (L - 6) + '" y="' + (y(v) + 3) + '" text-anchor="end">' + tick(v) + "</text>";
+  });
+  [0, 7, 14, 21, 28].forEach(function (i) {
+    svg += '<text x="' + x(i) + '" y="' + (H - 4) + '" text-anchor="middle">' + Score.parseDay(Score.addDays(first, i)).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + "</text>";
+  });
+  var segments = [], cur = [];
+  pts.forEach(function (p) { if (p) cur.push(p); else if (cur.length) { segments.push(cur); cur = []; } });
+  if (cur.length) segments.push(cur);
+  segments.forEach(function (seg) {
+    if (seg.length === 1) svg += '<circle cx="' + x(seg[0].i) + '" cy="' + y(seg[0].avg) + '" r="2" fill="var(--blue2)"/>';
+    else svg += '<polyline points="' + seg.map(function (p) { return x(p.i).toFixed(1) + "," + y(p.avg).toFixed(1); }).join(" ") + '" fill="none" stroke="var(--blue2)" stroke-width="1"/>';
+  });
+  return '<svg class="chart" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" aria-hidden="true">' + svg + "</svg>";
+}
+
+/* Score reveal: a 600ms count-up, 150ms under Reduce Motion (UX §6). */
+function countUp() {
+  var el = $("#score"); if (!el) return;
+  var target = Number(el.dataset.target), dur = ms(600), t0 = null;
+  // The final number is already in place; frames only animate towards it, so a page that never draws still shows it.
+  function step(now) {
+    if (t0 === null) t0 = now;
+    var k = Math.min(1, (now - t0) / dur);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+  setTimeout(function () { el.textContent = target; }, dur + 100);   // lands on the number even if frames stall
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Sheets and full-screen layers
+   --------------------------------------------------------------------------------------------------------------- */
+function openSheet(html) {
+  var l = $("#sheet");
+  l.innerHTML = '<div class="backdrop" data-action="close-sheet"></div><div class="sheet" role="dialog"><div class="grabber"></div>' + html + "</div>";
+  l.hidden = false;
+}
+function closeSheet() { var l = $("#sheet"); l.hidden = true; l.innerHTML = ""; }
+function openLayer(html) { var l = $("#layer"); l.innerHTML = html; l.hidden = false; l.scrollTop = 0; }
+function closeLayer() { var l = $("#layer"); l.hidden = true; l.innerHTML = ""; }
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Sound. The bell is BellSynth.swift's struck bowl, generated here with the Web Audio API. The browser has no
+   haptic on iPhone, so a tap gives a barely audible click instead, and only if the tester leaves it on.
+   --------------------------------------------------------------------------------------------------------------- */
+var AC = null, BUFFERS = {};
+function unlockAudio() {
+  // Play through the ring/silent switch, as the app does (D1.3). Safari 17+ only; elsewhere the switch may mute it.
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state !== "running") AC.resume();
+    var silent = AC.createBuffer(1, 1, AC.sampleRate), src = AC.createBufferSource();
+    src.buffer = silent; src.connect(AC.destination); src.start(0);   // iOS starts audio only inside a tap
+  } catch (e) { AC = null; }
+}
+function bellBuffer(fundamental) {
+  var rate = AC.sampleRate, length = 5, frames = Math.floor(length * rate);
+  var buffer = AC.createBuffer(1, frames, rate), data = buffer.getChannelData(0);
+  var partials = [[1.000, 1.00, 1.30], [1.004, 0.50, 1.30], [2.710, 0.40, 0.80], [5.150, 0.18, 0.45], [8.400, 0.08, 0.25]];
+  var attack = 0.004, release = 0.2, peak = 0;
+  for (var i = 0; i < frames; i++) {
+    var t = i / rate, v = 0;
+    for (var p = 0; p < partials.length; p++) v += partials[p][1] * Math.exp(-t / partials[p][2]) * Math.sin(2 * Math.PI * fundamental * partials[p][0] * t);
+    v *= Math.min(1, t / attack) * Math.min(1, (length - t) / release);
+    data[i] = v; if (Math.abs(v) > peak) peak = Math.abs(v);
+  }
+  if (peak > 0) for (var j = 0; j < frames; j++) data[j] *= 0.5 / peak;
+  return buffer;
+}
+function play(buffer, gain) {
+  if (!AC) return;
+  try {
+    if (AC.state !== "running") AC.resume();
+    var src = AC.createBufferSource(), g = AC.createGain();
+    src.buffer = buffer; g.gain.value = gain; src.connect(g).connect(AC.destination); src.start();
+  } catch (e) {}
+}
+function strike(kind) {   // opening 220 Hz, closing 196 Hz, as BellPlayer.swift
+  if (!AC) return;
+  var f = kind === "opening" ? 220 : 196;
+  play(BUFFERS[f] || (BUFFERS[f] = bellBuffer(f)), 1);
+}
+function tapClick() {
+  if (!AC || !S.tapSound) return;
+  if (!BUFFERS.click) {
+    var rate = AC.sampleRate, frames = Math.floor(0.012 * rate), b = AC.createBuffer(1, frames, rate), d = b.getChannelData(0);
+    for (var i = 0; i < frames; i++) { var t = i / rate; d[i] = Math.sin(2 * Math.PI * 1800 * t) * Math.exp(-t / 0.0025); }
+    BUFFERS.click = b;
+  }
+  play(BUFFERS.click, 0.05);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   The sitting (UX §7.3, PRD §7.2, D1.2 time away, D1.4 bells, D3/D4.4 checkpoints)
+   --------------------------------------------------------------------------------------------------------------- */
+var AWAY_ALLOWANCE_MS = 180 * 1000, MINIMUM_STORED_MS = 60 * 1000, CHECKPOINT_MS = 15 * 1000;
+var SES = null, wakeLock = null;
+
+async function holdScreenOn() {
+  try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", function () { wakeLock = null; }); } }
+  catch (e) { wakeLock = null; }
+}
+function releaseScreen() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+function setThemeColor(color) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+    if (!m.dataset.original) m.dataset.original = m.content;
+    m.content = color || m.dataset.original;
+  });
+}
+
+function begin(minutes, practice) {
+  if (SES) return;
+  unlockAudio();
+  holdScreenOn();
+  UI.menuOpen = false; closeSheet();
+  SES = { id: uuid(), phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0 };
+  document.documentElement.classList.add("sitting"); setThemeColor("#05080C");
+  var layer = $("#session");
+  layer.innerHTML = '<div class="end-zone" id="endZone"><span class="hold" id="holdLabel">Hold to end</span></div>' +
+    '<div class="tap-zone" id="tapZone"><svg class="hint" id="hint" viewBox="0 0 342 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24 Q171 0 342 24" fill="none" stroke="#1A2836" stroke-width="1"/></svg></div>';
+  layer.style.transition = "none"; layer.style.opacity = 0; layer.hidden = false;
+  bindSessionGestures();
+  requestAnimationFrame(function () { requestAnimationFrame(function () {
+    layer.style.transition = "opacity " + ms(900) + "ms ease-out"; layer.style.opacity = 1;
+  }); });
+  setTimeout(startRunning, ms(900));
+}
+
+function startRunning() {
+  if (!SES || SES.phase !== "entering") return;
+  SES.phase = "running"; SES.startedAt = Date.now();
+  strike("opening");
+  setTimeout(function () { var h = $("#hint"); if (h) h.style.opacity = 0; }, 3000);   // after 3s every visible element is gone
+  writeCheckpoint();
+  SES.timer = setInterval(tick, 250);
+}
+
+function tick() {
+  if (!SES || SES.phase !== "running" || document.visibilityState === "hidden") return;
+  var now = Date.now();
+  if (now - SES.startedAt >= SES.plannedMs) { finish("completed", SES.startedAt + SES.plannedMs); return; }
+  if (now - SES.lastCheckpoint >= CHECKPOINT_MS) writeCheckpoint();
+}
+
+function bindSessionGestures() {
+  var tapZone = $("#tapZone"), endZone = $("#endZone"), label = $("#holdLabel"), holdTimer = null;
+  var layer = $("#session");
+  layer.addEventListener("touchstart", function (e) { e.preventDefault(); }, { passive: false });   // no zoom, no selection
+  layer.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  tapZone.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    if (!SES || SES.phase !== "running") return;
+    var offset = Date.now() - SES.startedAt;
+    if (offset < SES.plannedMs) SES.taps.push(offset);
+    tapClick();                                          // no visual response at all
+    if (SES.taps.length === 1) writeCheckpoint();        // presence rests on the first tap (D4.4)
+  });
+  function cancel() { clearTimeout(holdTimer); holdTimer = null; label.style.opacity = 0; }
+  endZone.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    if (!SES || SES.phase !== "running") return;
+    label.style.opacity = 1;
+    holdTimer = setTimeout(function () { label.style.opacity = 0; finish("held", Date.now()); }, 1000);
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(function (t) { endZone.addEventListener(t, cancel); });
+}
+
+/* Time away (D1.2): 180 s in total per sitting. Ending for time away dates the end to the moment the page was left. */
+document.addEventListener("visibilitychange", function () {
+  if (!SES || SES.phase !== "running") return;
+  var now = Date.now();
+  if (document.visibilityState === "hidden") {
+    SES.awayStart = now;
+    writeCheckpoint();
+    return;
+  }
+  if (AC && AC.state !== "running") { try { AC.resume(); } catch (e) {} }
+  holdScreenOn();
+  if (SES.awayStart === null) return;
+  var left = SES.awayStart, plannedEnd = SES.startedAt + SES.plannedMs;
+  var allowanceRanOut = left + (AWAY_ALLOWANCE_MS - SES.awayTotal);
+  if (now > allowanceRanOut && allowanceRanOut < plannedEnd) { finish("away", left); return; }
+  SES.awayTotal += Math.min(now, plannedEnd) - left;
+  SES.awayStart = null;
+  if (now >= plannedEnd) finish("completed", plannedEnd);
+});
+window.addEventListener("pagehide", function () { if (SES && SES.phase === "running") writeCheckpoint(); });
+
+function writeCheckpoint() {
+  if (!SES || SES.practice || SES.phase !== "running") return;
+  var now = Date.now();
+  SES.lastCheckpoint = now;
+  S.checkpoint = { id: SES.id, startedAt: SES.startedAt, plannedMs: SES.plannedMs, taps: SES.taps.slice(),
+    lastKnownAt: SES.awayStart !== null ? SES.awayStart : now, awayTotal: SES.awayTotal, awayStart: SES.awayStart };
+  save();
+}
+
+function record(id, startedAt, plannedMs, taps, elapsedMs, state, ending) {
+  var recorded = Math.min(elapsedMs, plannedMs), endedAt = startedAt + recorded;
+  var kept = taps.filter(function (t) { return t <= recorded; });
+  return { id: id, date: Score.ymd(new Date(endedAt)), startedAt: startedAt, endedAt: endedAt,
+    plannedSeconds: Math.round(plannedMs / 1000), actualSeconds: Math.floor(recorded / 1000),
+    state: state, ending: ending, taps: kept, tapCount: kept.length, checkIn: null };
+}
+
+/** reason: completed | held | away */
+function finish(reason, endedAt) {
+  if (!SES || SES.phase !== "running") return;
+  clearInterval(SES.timer);
+  SES.phase = "leaving";
+  var elapsed = Math.max(0, endedAt - SES.startedAt);
+  var state = reason === "completed" ? "completed" : elapsed >= MINIMUM_STORED_MS ? "incomplete" : null;
+  if (reason !== "away") strike("closing");   // the bell closes a sitting ended on purpose, never an interruption (D1.4)
+
+  var stored = null, wasPractice = SES.practice;
+  if (!wasPractice) {
+    S.checkpoint = null;
+    if (state) { stored = record(SES.id, SES.startedAt, SES.plannedMs, SES.taps, elapsed, state, reason); S.sessions.push(stored); }
+    S.interrupted = reason === "away" && !!stored;
+    if (stored && state === "completed") S.pendingCheckIn = stored.id;
+    save();
+  }
+
+  var layer = $("#session"), fade = reason === "away" ? 0 : ms(1400);
+  if (wasPractice) { S.step = 6; save(); }
+  render();
+  if (!wasPractice && stored && state === "completed") openCheckIn(stored.id);
+  layer.style.transition = "opacity " + fade + "ms ease-out"; layer.style.opacity = 0;
+  setTimeout(function () {
+    layer.hidden = true; layer.innerHTML = "";
+    document.documentElement.classList.remove("sitting"); setThemeColor(null);
+    releaseScreen();
+    SES = null;
+  }, fade + 30);
+}
+
+/* A page closed mid-sitting: stored as incomplete, ending at the last known moment (D3), like the app's recovery. */
+function recoverCheckpoint() {
+  var c = S.checkpoint; if (!c) return;
+  S.checkpoint = null;
+  var endAt = c.lastKnownAt;
+  if (c.awayStart !== null && c.awayStart !== undefined && c.awayTotal + (c.lastKnownAt - c.awayStart) > AWAY_ALLOWANCE_MS) endAt = c.awayStart;
+  var elapsed = endAt - c.startedAt;
+  if (elapsed >= MINIMUM_STORED_MS && !S.sessions.some(function (s) { return s.id === c.id; })) {
+    S.sessions.push(record(c.id, c.startedAt, c.plannedMs, c.taps || [], elapsed, "incomplete", "closed"));
+    S.interrupted = true;
+  }
+  save();
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Check-in (UX §7.4, PRD §7.3): one question per screen, auto-advance after 220ms, Skip the rest keeps answers.
+   --------------------------------------------------------------------------------------------------------------- */
+var CI = null;
+function openCheckIn(sessionId) {
+  CI = { id: sessionId, index: 0, answers: {}, done: false };
+  openLayer('<div class="ci">' +
+    '<div class="row"><h1 class="title">How was the sitting?</h1><button class="secondary ink3" data-action="ci-skip" style="flex:none">Skip the rest</button></div>' +
+    '<p class="caption" style="margin-top:4px">No right answers. This never affects your ranking.</p>' +
+    '<div class="ci-viewport" id="ciViewport"><div class="ci-pages" id="ciPages">' +
+    HINDRANCES.map(function (h) {
+      return '<div class="ci-page"><h2 class="title">' + h.name + '</h2><p class="reading" style="margin-top:8px">' + esc(h.q) + '</p>' +
+        '<div class="options" style="margin-top:24px">' + ANSWERS.map(function (a, v) {
+          return '<button data-action="ci-answer" data-h="' + h.key + '" data-v="' + v + '"><span class="radio"></span>' + a + "</button>";
+        }).join("") + "</div></div>";
+    }).join("") + "</div></div>" +
+    '<div class="row" style="align-items:center;padding-top:16px"><div class="dots" id="ciDots">' +
+    HINDRANCES.map(function (_, i) { return '<i class="' + (i === 0 ? "on" : "") + '"></i>'; }).join("") +
+    '</div><button class="textlink" data-action="ci-what">What is this? →</button></div></div>');
+  bindCheckInSwipe();
+}
+function showCheckInPage(i) {
+  CI.index = Math.max(0, Math.min(4, i));
+  var pages = $("#ciPages");
+  pages.style.transitionDuration = ""; pages.style.transform = "translateX(" + (-100 * CI.index) + "%)";
+  Array.prototype.forEach.call($("#ciDots").children, function (d, n) { d.classList.toggle("on", n === CI.index); });
+}
+function bindCheckInSwipe() {
+  var vp = $("#ciViewport"), pages = $("#ciPages"), x0 = null, dx = 0;
+  vp.addEventListener("pointerdown", function (e) { x0 = e.clientX; dx = 0; });
+  vp.addEventListener("pointermove", function (e) {
+    if (x0 === null) return;
+    dx = e.clientX - x0;
+    if (Math.abs(dx) > 8) { pages.style.transitionDuration = "0ms"; pages.style.transform = "translateX(calc(" + (-100 * CI.index) + "% + " + dx + "px))"; }
+  });
+  function up() { if (x0 === null) return; var moved = dx; x0 = null; showCheckInPage(Math.abs(moved) > 60 ? CI.index + (moved < 0 ? 1 : -1) : CI.index); }
+  vp.addEventListener("pointerup", up); vp.addEventListener("pointercancel", up); vp.addEventListener("pointerleave", up);
+}
+function answerCheckIn(key, value) {
+  if (!CI || CI.done) return;
+  CI.answers[key] = value;
+  var at = HINDRANCES.findIndex(function (h) { return h.key === key; });
+  Array.prototype.forEach.call($("#ciPages").children[at].querySelectorAll("[data-action=ci-answer]"), function (b) {
+    b.classList.toggle("on", Number(b.dataset.v) === value);
+  });
+  setTimeout(function () { if (CI && !CI.done) { if (at < 4) showCheckInPage(at + 1); else finishCheckIn(); } }, 220);
+}
+function finishCheckIn() {
+  if (!CI || CI.done) return;
+  CI.done = true;
+  var s = S.sessions.find(function (x) { return x.id === CI.id; });
+  if (s && Object.keys(CI.answers).length) { s.checkIn = Object.assign({}, CI.answers); s.checkInAt = Date.now(); }
+  S.pendingCheckIn = null;
+  CI = null;
+  save();
+  closeLayer(); closeSheet();
+  UI.tab = "sit"; render();
+  if (completedCount() >= 5 && !S.survey) openSurvey();   // after the fifth completed sitting
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Phase 0 questions and the results block
+   --------------------------------------------------------------------------------------------------------------- */
+function openSurvey() {
+  if (!S.survey) { S.survey = { answers: [null, null, null], notes: "", shownAt: Date.now() }; save(); }
+  var sv = S.survey;
+  openLayer('<div class="layer-inner">' +
+    '<button class="back" data-action="close-survey" aria-label="Back">' + ICON.back + "</button>" +
+    SURVEY.map(function (q, i) {
+      return '<p class="reading" style="margin-top:' + (i ? 32 : 16) + 'px">' + (i + 1) + ". " + esc(q) + "</p>" +
+        '<div class="options" style="margin-top:12px">' + ANSWERS.map(function (a, v) {
+          return '<button class="' + (sv.answers[i] === v ? "on" : "") + '" data-action="survey-answer" data-q="' + i + '" data-v="' + v + '"><span class="radio"></span>' + a + "</button>";
+        }).join("") + "</div>";
+    }).join("") +
+    '<div class="label" style="margin-top:32px">Anything else?</div><textarea class="field" id="survey-notes">' + esc(sv.notes) + "</textarea>" +
+    '<button class="primary" data-action="copy-results" id="copyButton" style="margin-top:32px">Copy my results</button>' +
+    '<p class="reading" style="margin-top:16px;font-size:17px">' + esc(TXT.pasteBack) + "</p>" +
+    '<div id="copyFallback" hidden><p class="caption" style="margin-top:16px">' + esc(TXT.copyByHand) + '</p><textarea class="field" id="resultsText" style="height:220px;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px"></textarea></div>' +
+    "</div>");
+}
+
+function resultsText() {
+  function clock(ms) { var s = Math.floor(ms / 1000); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+  function time(t) { var d = new Date(t); return Score.ymd(d) + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  var device = /iPhone|iPad|iPod/.test(navigator.userAgent) ? "iPhone" : /Android/.test(navigator.userAgent) ? "Android" : "other";
+  var sessions = S.sessions.slice().sort(function (a, b) { return a.startedAt - b.startedAt; });
+  var completed = sessions.filter(function (s) { return s.state === "completed"; }).length;
+  var lines = [
+    "Nimitta Phase 0 results",
+    "tester " + S.tester + " · web 1 · " + device + " · wake lock " + ("wakeLock" in navigator ? "yes" : "no") + " · tap sound " + (S.tapSound ? "on" : "off"),
+    "goal " + S.goalDays + " days a week, " + S.goalMinutes + " min · experience: " + (S.experience === null ? "-" : EXPERIENCE[S.experience]),
+    "",
+    "Sittings: " + sessions.length + " (" + completed + " completed)"
+  ];
+  sessions.forEach(function (s, n) {
+    lines.push((n + 1) + ". " + time(s.startedAt) + " · planned " + Math.round(s.plannedSeconds / 60) + " min · sat " + clock(s.actualSeconds * 1000) +
+      " · " + s.state + (s.ending && s.ending !== "completed" ? " (" + { held: "held to end", away: "away too long", closed: "page closed" }[s.ending] + ")" : "") +
+      " · " + s.tapCount + (s.tapCount === 1 ? " tap" : " taps") + (s.taps.length ? " at " + s.taps.map(clock).join(" ") : ""));
+    if (s.checkIn) lines.push("   check-in: " + HINDRANCES.map(function (h) { var v = s.checkIn[h.key]; return h.name + " " + (v === undefined || v === null ? "-" : ANSWERS[v]); }).join(", "));
+    else if (s.state === "completed") lines.push("   check-in: skipped");
+  });
+  var sv = S.survey || { answers: [null, null, null], notes: "" };
+  lines.push("", "Questions");
+  SURVEY.forEach(function (q, i) { lines.push((i + 1) + ". " + q + " " + (sv.answers[i] === null ? "-" : ANSWERS[sv.answers[i]])); });
+  lines.push("Anything else? " + (sv.notes.trim() ? sv.notes.trim().replace(/\s*\n\s*/g, " / ") : "-"));
+  lines.push("This week's score: " + Score.score(thisWeek()));
+  return lines.join("\n");
+}
+
+function copyResults() {
+  var notes = $("#survey-notes"); if (notes && S.survey) { S.survey.notes = notes.value; save(); }
+  var text = resultsText(), button = $("#copyButton");
+  function done() { button.textContent = TXT.copied; }
+  function fallback() {
+    var box = $("#resultsText"); $("#copyFallback").hidden = false; box.value = text;
+    box.focus(); box.select(); box.setSelectionRange(0, text.length);
+    try { if (document.execCommand("copy")) done(); } catch (e) {}
+  }
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Actions
+   --------------------------------------------------------------------------------------------------------------- */
+var actions = {
+  "tab": function (el) { UI.tab = el.dataset.tab; UI.menuOpen = false; render(); window.scrollTo(0, 0); },
+  "arc": function () { UI.menuOpen = !UI.menuOpen; render(); },
+  "pick-minutes": function (el) { UI.sittingMinutes = Number(el.dataset.v); UI.menuOpen = false; render(); },
+  "begin": function () { begin(UI.sittingMinutes || S.goalMinutes, false); },
+  "toggle-sound": function () { S.tapSound = !S.tapSound; save(); render(); },
+  "why": function () { openSheet(WHY); },
+  "close-sheet": function () { closeSheet(); if (!S.warned && S.onboarded) { S.warned = true; save(); } },
+
+  "onb-next": function () { S.step = Math.min(6, S.step + 1); if (S.step === 2) UI.draftAbout = Object.assign({}, S.about); save(); render(); window.scrollTo(0, 0); },
+  "about-pick": function (el) { var f = el.dataset.f; UI.draftAbout.name = $("#about-name").value; UI.draftAbout.consent = $("#about-consent").checked;
+    UI.draftAbout[f] = UI.draftAbout[f] === el.dataset.v ? null : el.dataset.v; var y = window.scrollY; render(); window.scrollTo(0, y); },
+  "about-continue": function () {
+    var d = UI.draftAbout, consent = $("#about-consent").checked;
+    d.name = $("#about-name").value.trim();
+    if (consent !== S.about.consent) d.consentUpdatedAt = new Date().toISOString();   // changing the box stamps the time (R5)
+    d.consent = consent;
+    S.about = d; S.step = 3; save(); render(); window.scrollTo(0, 0);
+  },
+  "about-skip": function () { S.step = 3; save(); render(); window.scrollTo(0, 0); },
+  "onb-exp": function (el) { S.experience = Number(el.dataset.v); save(); render(); setTimeout(function () { if (S.step === 3) { S.step = 4; save(); render(); } }, 220); },
+  "onb-days": function (el) { S.goalDays = Number(el.dataset.v); save(); render(); },
+  "onb-len": function (el) { S.goalMinutes = Number(el.dataset.v); save(); render(); },
+  "onb-try": function () { begin(1, true); },
+  "onb-finish": function () {
+    var t = $("#onb-time"); if (t && t.value) S.reminder = t.value;
+    S.onboarded = true; UI.tab = "sit"; save(); render();
+    openSheet('<p class="reading">' + esc(TXT.storageWarning) + '</p><button class="primary" data-action="close-sheet" style="margin-top:24px">Continue</button>');
+  },
+
+  "ci-answer": function (el) { answerCheckIn(el.dataset.h, Number(el.dataset.v)); },
+  "ci-skip": function () { finishCheckIn(); },
+  "ci-what": function () { openSheet(WHAT_IS_THIS); },
+
+  "survey": function () { openSurvey(); },
+  "survey-answer": function (el) {
+    var q = Number(el.dataset.q), v = Number(el.dataset.v);
+    S.survey.answers[q] = v; save();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-action=survey-answer][data-q="' + q + '"]'), function (b) { b.classList.toggle("on", Number(b.dataset.v) === v); });
+  },
+  "copy-results": function () { copyResults(); },
+  "close-survey": function () { var n = $("#survey-notes"); if (n && S.survey) { S.survey.notes = n.value; save(); } closeLayer(); render(); }
+};
+document.addEventListener("click", function (e) {
+  var el = e.target.closest("[data-action]");
+  if (el) { var f = actions[el.dataset.action]; if (f) f(el, e); return; }
+  if (UI.menuOpen && !e.target.closest(".menu")) { UI.menuOpen = false; render(); }
+});
+document.addEventListener("input", function (e) {
+  if (e.target.id === "survey-notes" && S.survey) { S.survey.notes = e.target.value; save(); }
+});
+
+/* ---------------------------------------------------------------------------------------------------------------
+   ?selftest=1: the score against the shared 20-week fixture, the same assertions as PracticeScoreFixtureTests.swift
+   --------------------------------------------------------------------------------------------------------------- */
+function runSelfTest() {
+  var fixture = JSON.parse($("#score-fixture").textContent), out = [], failures = 0, halves = 0;
+  fixture.weeks.forEach(function (week) {
+    var sessions = week.sessions.map(function (s) {
+      return { date: s.local_date, startedAt: Date.parse(s.started_at), state: s.state, tapCount: s.tap_count };
+    });
+    var w = Score.week(sessions, week.week_start, week.goal_days), got = Score.score(w), e = week.expected;
+    var ok = w.practiceDays === e.practice_days && w.started === e.started && w.completed === e.completed && w.present === e.present && got === e.score;
+    var t = Score.exactTotal(w), twice = 2 * t.numerator;
+    if (twice % t.denominator === 0 && (twice / t.denominator) % 2 === 1) { halves++; if (got !== (twice / t.denominator + 1) / 2) ok = false; }
+    if (!ok) failures++;
+    out.push((ok ? "ok   " : "FAIL ") + got + " (expected " + e.score + ")  " + week.name);
+  });
+  var pass = failures === 0 && fixture.weeks.length === 20 && halves >= 3;
+  out.unshift((pass ? "PASS" : "FAIL") + ": " + (fixture.weeks.length - failures) + " of " + fixture.weeks.length + " weeks match the app; " + halves + " land exactly on .5 and round up", "");
+  return { pass: pass, text: out.join("\n") };
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+   Start
+   --------------------------------------------------------------------------------------------------------------- */
+if (params.get("selftest") === "1") {
+  var result = runSelfTest();
+  document.title = (result.pass ? "PASS" : "FAIL") + " · Nimitta self-test";
+  $("#app").innerHTML = '<pre class="selftest">' + esc(result.text) + "</pre>";
+} else {
+  S = loadState();
+  recoverCheckpoint();
+  if (S.step === 2 && !UI.draftAbout) UI.draftAbout = Object.assign({}, S.about);
+  render();
+  if (S.pendingCheckIn && S.sessions.some(function (s) { return s.id === S.pendingCheckIn && !s.checkIn; })) openCheckIn(S.pendingCheckIn);
+  else if (S.onboarded && !S.warned) actions["onb-finish"].call(null);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(function () {});
+}
+</script>
+</body>
+</html>
