@@ -94,13 +94,22 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 
 /* Sit */
 .sit{display:flex;flex-direction:column;min-height:calc(100dvh - 64px - env(safe-area-inset-bottom) - env(safe-area-inset-top));padding:24px 24px 16px}
-.sit .middle{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:200px}
+.sit .middle{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:170px}
 .arc-btn{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center}
 .arc-btn svg{position:absolute;inset:0}
 .menu{position:absolute;top:calc(50% + 66px);left:50%;transform:translateX(-50%);width:200px;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;z-index:5}
 .menu button{display:flex;justify-content:space-between;width:100%;height:44px;padding:0 16px;align-items:center;font-size:16px;font-variant-numeric:tabular-nums}
 .menu button+button{border-top:1px solid var(--line)}
-.cue{font-family:var(--serif);font-size:17px;line-height:1.45;color:var(--ink2);text-align:center;margin:0 4px 16px}
+.anchor{font-family:var(--serif);font-size:17px;line-height:1.45;color:var(--ink2);text-align:center;margin:0 4px}
+.cue{font-size:12px;letter-spacing:.2px;line-height:1.4;color:var(--ink3);text-align:center;margin:6px 4px 16px}
+.arc-num{display:flex;flex-direction:column;align-items:center;line-height:1}
+.arc-num b{font-family:var(--serif);font-size:48px;font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.arc-num small{font-size:12px;color:var(--ink3);margin-top:2px}
+.postures{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:-8px 0 28px}
+.postures button{min-height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.postures button.on{background:var(--bluewash);border-color:var(--bluewash)}
+.today-line{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:44px;font-size:14px;color:var(--ink2)}
+.today-line span:last-child{color:var(--ink3)}
 
 /* Tab bar */
 #tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;border-top:1px solid var(--line);background:var(--bg);padding:6px 0 env(safe-area-inset-bottom);z-index:10}
@@ -138,7 +147,8 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 
 /* The sitting: ignores the theme (UX spec §2) */
 #session{position:fixed;inset:0;z-index:60;background:var(--session);opacity:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.end-zone{position:absolute;top:0;left:0;right:0;height:15%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:16px}
+.end-zone{position:absolute;top:0;left:0;right:0;height:15%;display:flex;align-items:flex-start;justify-content:center;padding-top:calc(env(safe-area-inset-top) + 20px)}
+.stop{font-size:14px;color:var(--session-line);font-family:var(--sans)}
 .hold{font-size:12px;letter-spacing:.2px;color:var(--session-line);opacity:0;transition:opacity var(--screen) ease-in-out}
 .tap-zone{position:absolute;left:0;right:0;bottom:0;height:50%}
 .hint{position:absolute;left:24px;bottom:calc(8px + env(safe-area-inset-bottom));height:24px;width:calc(100% - 48px);transition:opacity .9s ease-out}
@@ -152,17 +162,6 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .change{padding-top:14px}
 .change .row{padding-top:4px}
 
-/* You: the last 12 months (C8) */
-.year{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
-.year::-webkit-scrollbar{display:none}
-.year-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);grid-auto-columns:13px;gap:3px;width:max-content}
-.year-grid button{width:13px;height:13px;background:var(--bluewash);padding:0}
-.year-grid button.s1{background:color-mix(in srgb,var(--blue2) 40%,var(--bg))}
-.year-grid button.s2{background:color-mix(in srgb,var(--blue2) 70%,var(--bg))}
-.year-grid button.s3{background:var(--blue2)}
-.year-grid button.ring{box-shadow:inset 0 0 0 1.5px var(--gold)}
-.year-grid button.future{visibility:hidden}
-
 /* The exit panel (C7): readable in an emergency, quiet otherwise */
 .exit{position:absolute;left:24px;right:24px;top:15%;bottom:50%;display:flex;flex-direction:column;justify-content:center;gap:18px;opacity:0;transition:opacity var(--screen) ease-in-out;pointer-events:none;color:#9DAAB8;font-family:var(--sans)}
 .exit.on{opacity:1;pointer-events:auto}
@@ -170,6 +169,36 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .exit button{display:block;text-align:left;min-height:44px;color:#9DAAB8;font-size:16px;font-weight:500;width:100%}
 .exit small{display:block;font-size:12px;letter-spacing:.2px;color:#65737F;font-weight:400;margin-top:2px}
 .exit p{font-size:14px;color:#65737F;line-height:1.45}
+
+/* History (D6.6, D6.7) */
+.hist-day{font-size:14px;color:var(--ink2);padding:24px 0 8px;border-bottom:1px solid var(--line)}
+.hist-row{display:block;width:100%;text-align:left;min-height:44px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
+.hist-row:disabled{cursor:default;opacity:1}
+.hist-row.focus{background:var(--bluewash);padding-left:8px}
+
+/* What you met (D6.8): everything in ink-2, no arrows, no colour */
+.met-head{display:flex;justify-content:space-between;align-items:center}
+.met-toggle{display:flex;gap:6px}
+.met-toggle button{font-size:12px;color:var(--ink2);padding:4px 8px;border-radius:8px}
+.met-toggle button.on{background:var(--bluewash)}
+.met-row{display:block;width:100%;text-align:left;padding:8px 0;color:var(--ink2)}
+.met-row .line{display:grid;grid-template-columns:104px 1fr;gap:12px;align-items:center;font-size:14px}
+.met-row .bar2{height:6px;background:var(--line);position:relative}
+.met-row .bar2 i{position:absolute;left:0;top:0;bottom:0;background:var(--ink2)}
+.met-row .word{font-size:12px;letter-spacing:.2px;margin:4px 0 0 116px}
+
+/* Month x hour map (D6.9) */
+.month-head{display:flex;justify-content:space-between;align-items:center;margin-top:24px}
+.month-head button{width:44px;height:44px;font-size:22px;color:var(--ink2)}
+.month-head button:disabled{color:var(--line)}
+.map{display:grid;gap:1px;margin-top:8px}
+.map .c{height:7px}
+.map .c.f{background:var(--blue2)}
+.map .c.u{box-shadow:inset 0 0 0 1px var(--blue2)}
+.map .h,.map .d{font-size:9px;color:var(--ink3);font-variant-numeric:tabular-nums;line-height:7px;white-space:nowrap}
+.map .h{text-align:right;padding-right:4px}
+.map .d{line-height:12px;text-align:center;overflow:visible}
+.map .today{height:1px;background:var(--line)}
 
 /* Self-test */
 .selftest{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;padding:24px;white-space:pre-wrap}
@@ -1696,6 +1725,22 @@ var WORK = ["Student", "Healthcare", "Engineering or IT", "Science or research",
   "Transport or logistics", "Agriculture", "Military or emergency services", "Homemaker", "Between jobs", "Retired", "Other",
   "Prefer not to say"];
 var GOAL_DAYS = [1, 2, 3, 4, 5, 6, 7];
+/* D6.3: posture, stored on each sitting and never scored. D6.2: where to rest attention, verbatim. */
+var POSTURES = [
+  { key: "sitting", label: "Sitting", anchor: "Rest your attention at the tip of the nose, where the breath touches. Stay relaxed. Don't follow the breath inside." },
+  { key: "standing", label: "Standing", anchor: "Stand at ease, knees soft. Rest your attention at the tip of the nose, where the breath touches. Don't follow the breath inside." },
+  { key: "walking", label: "Walking", anchor: "Walk slowly on a short path. Rest your attention on the soles of the feet — lifting, moving, placing. At the end, stop, turn, and begin again." },
+  { key: "lying", label: "Lying down", anchor: "Lie on your back, arms by your sides. Rest your attention at the tip of the nose, where the breath touches. If you grow sleepy, sit up." }
+];
+function posture(key) { return POSTURES.filter(function (p) { return p.key === key; })[0] || POSTURES[0]; }
+/* Dhamma Framework §3, opened from What you met (D6.8). */
+var INSTRUCTIONS = {
+  wanting: "Don't push the wanting away. Watch it instead. Notice that it rises, pulls, and passes — and that it was never as solid as it felt. Then return to the breath.",
+  resisting: "Before you sit, spend two minutes wishing yourself well — sincerely, not as a formula. Resistance softens when it is met with warmth, not with force.",
+  dullness: "Straighten the spine. Open the eyes halfway. Bring the attention up to the tip of the nose, where the breath is sharpest. Sit earlier in the day, and sit shorter. Dullness is answered with energy, not with patience.",
+  restlessness: "Count the breaths from one to ten, then begin again. Let the out-breath be longer than the in-breath. Move your attention down from the head to the abdomen, where the body is heavier. Restlessness is answered with settling, not with effort.",
+  doubt: "A wandering mind is not evidence that you are failing at this. It is the thing you are practising with. Before you judge the practice, look at your own record of the last thirty days."
+};
 var LENGTHS = params.get("quick") === "1" ? [1, 5, 10, 15, 20, 30, 45, 60, 90] : [5, 10, 15, 20, 30, 45, 60, 90];
 var CUSTOM_MIN = 1, CUSTOM_MAX = 180, DISCARDS_PER_WEEK = 3, EXIT_PANEL_MS = 4000;
 /** C5: a whole number of minutes from 1 to 180, or null. Duration never enters a score. */
@@ -1736,7 +1781,7 @@ function freshState() {
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
     experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
-    checkpoint: null, survey: null, discards: []
+    checkpoint: null, survey: null, discards: [], posture: "sitting"
   };
 }
 function testerCode() {
@@ -1777,7 +1822,10 @@ function latestChange() {
   var t = today(), ws = Score.weekStart(t), all = kept();
   var latest = all.reduce(function (a, b) { return !a || b.endedAt > a.endedAt ? b : a; }, null);
   if (!latest || latest.date !== t) return null;
-  return { before: Score.week(all.filter(function (s) { return s.id !== latest.id; }), ws, S.goalDays), after: Score.week(all, ws, S.goalDays) };
+  var before = Score.week(all.filter(function (s) { return s.id !== latest.id; }), ws, S.goalDays), after = Score.week(all, ws, S.goalDays);
+  // A sitting past the day's three moves nothing, and "37 → 37" with no reason says nothing.
+  if (before.practiceDays === after.practiceDays && before.started === after.started && before.completed === after.completed && before.present === after.present) return null;
+  return { before: before, after: after };
 }
 
 /** C6: days still open for a practice day this week, while the goal is not met and can still be met. */
@@ -1834,7 +1882,7 @@ function render() {
   }).join("");
   app.innerHTML = UI.tab === "sit" ? renderSit() : UI.tab === "week" ? renderWeek() : renderYou();
   if (UI.tab === "week") countUp();
-  if (UI.tab === "you") { var y = $(".year"); if (y) y.scrollLeft = y.scrollWidth; }
+
 }
 
 /* Onboarding, 7 screens (revision R1): promise, account, about you, experience, commitment, the tap, reminder. */
@@ -1887,7 +1935,8 @@ function renderOnboarding() {
   } else if (step === 5) {
     body = '<p class="reading">While you sit, your mind will wander. That is not failure — that is the practice.</p>' +
       '<p class="reading">The moment you notice you have wandered, tap anywhere on the lower half of the screen, then return to the breath.</p>' +
-      '<p class="reading"><strong>Tapping more is not worse. Noticing is the whole skill.</strong></p>';
+      '<p class="reading"><strong>Tapping more is not worse. Noticing is the whole skill.</strong></p>' +
+      '<p class="reading">To stop at any time, tap Stop at the top of the screen.</p>';
     foot = '<button class="primary" data-action="onb-try">Try it for 60 seconds</button>';
   } else {
     body = '<h1 class="title">What time will you sit?</h1><input class="field" type="time" id="onb-time" value="' + esc(S.reminder) + '" style="width:150px">';
@@ -1907,23 +1956,46 @@ function renderSit() {
   var results = completedCount() >= 5
     ? '<button class="outline" data-action="survey" style="margin-top:16px">Copy my results</button>' : "";
   return '<div class="sit">' +
-    '<div class="secondary ink3">' + Score.parseDay(t).toLocaleDateString("en-GB", { weekday: "long" }) + "</div>" +
+    '<div class="secondary ink3 num" id="dateline">' + esc(dateLine()) + "</div>" +
     '<h1 class="display">Sit</h1>' +
     '<div class="middle"><button class="arc-btn" data-action="arc" aria-label="' + minutes + ' min">' + arcSvg(120, 1.5, "var(--line)") +
-    '<span class="ui num">' + minutes + " min</span></button>" + menu + "</div>" +
+    '<span class="arc-num"><b>' + minutes + "</b><small>min</small></span></button>" + menu + "</div>" +
+    '<div class="postures">' + POSTURES.map(function (p) {
+      return '<button class="' + (S.posture === p.key ? "on" : "") + '" data-action="posture" data-v="' + p.key + '" aria-pressed="' + (S.posture === p.key) + '">' + p.label + "</button>";
+    }).join("") + "</div>" +
+    // Two lines, no more (D6.2): where to rest attention, then the Cue.
+    '<p class="anchor">' + esc(posture(S.posture).anchor) + "</p>" +
     '<p class="cue">' + esc(cue()) + "</p>" +
-    (left ? '<p class="secondary ink3" style="text-align:center;margin:-8px 0 16px">' + esc(daysLeftLine(left)) + "</p>" : "") +
     ("wakeLock" in navigator ? "" : '<p class="caption" style="text-align:center;margin-bottom:12px">' + esc(TXT.noWakeLock) + "</p>") +
     '<button class="primary" data-action="begin">Begin</button>' +
     '<div class="hairline" style="margin-top:32px"></div>' +
     (change ? renderChange(change) : "") +
     '<div class="row secondary" style="padding:14px 0 6px"><span class="ink2">This week</span>' +
     '<span class="num"><span class="' + (met ? "gold" : "") + '">' + w.practiceDays + "</span> of " + S.goalDays + " days</span></div>" +
+    (left ? '<p class="caption">' + esc(daysLeftLine(left)) + "</p>" : "") +
     renderStrip(w, t) +
+    '<button class="today-line" data-action="history-today"><span>' + esc(todayLine()) + "</span><span>›</span></button>" +
     (S.interrupted ? '<p class="caption" style="padding-bottom:6px">That one got interrupted. It still counts as a sitting you started.</p>' : "") +
     '<div class="row secondary" style="align-items:center;padding:10px 0"><span class="ink2">' + esc(TXT.tapSound) + "</span>" +
     '<button class="switch' + (S.tapSound ? " on" : "") + '" data-action="toggle-sound" role="switch" aria-checked="' + S.tapSound + '" aria-label="' + esc(TXT.tapSound) + '"></button></div>' +
     results + "</div>";
+}
+
+/* D6.1: the full date in the user's locale and a clock in its 12/24-hour style, refreshed each minute. */
+function dateLine() {
+  var now = new Date();
+  try {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "full" }).format(now) + " · " + new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(now);
+  } catch (e) { return now.toLocaleDateString() + " · " + now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+}
+setInterval(function () { var el = $("#dateline"); if (el) el.textContent = dateLine(); }, 20000);
+
+/* D6.6: "Today · 2 sittings · 1 unfinished". */
+function todayLine() {
+  var t = today(), list = kept().filter(function (s) { return s.date === t; });
+  var unfinished = list.filter(function (s) { return s.state === "incomplete"; }).length;
+  if (!list.length) return "Today · no sittings yet";
+  return "Today · " + (list.length === 1 ? "1 sitting" : list.length + " sittings") + (unfinished ? " · " + unfinished + " unfinished" : "");
 }
 
 /* PRD §7.9's wording: "Two days left in the week. You set a goal of {n}." */
@@ -1989,56 +2061,136 @@ function renderWeek() {
     '<div class="label">Days practised in the last 30</div><div class="grid30">' + cells + "</div>" +
     '<div class="hairline" style="margin:32px 0"></div>' +
     '<div class="label">Returns per sitting</div>' + returnsChart(first, t) +
-    '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p></div>';
+    '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p>' +
+    '<div class="hairline" style="margin:32px 0"></div>' + renderWhatYouMet(t) + "</div>";
 }
 
-/* You (C8, D5): the last 12 months, shaded by completed sittings (never minutes), and the hours this tester sits. */
-function renderYou() {
-  var t = today(), first = Score.addDays(Score.weekStart(t), -7 * 52), cache = {}, completed = {};
-  kept().forEach(function (s) { if (s.state === "completed") completed[s.date] = (completed[s.date] || 0) + 1; });
-  var cells = "";
-  for (var i = 0; i < 53 * 7; i++) {
-    var d = Score.addDays(first, i), ws = Score.weekStart(d);
-    var wk = cache[ws] || (cache[ws] = Score.week(S.sessions, ws, S.goalDays));
-    var practised = !!wk.practiceDates[d], ring = practised && wk.practiceDays >= S.goalDays, n = completed[d] || 0;
-    var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
-    var label = ring ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no sitting";
-    cells += '<button class="' + (d > t ? "future" : "") + (n ? " s" + Math.min(n, 3) : "") + (ring ? " ring" : "") +
-      '" data-action="year-day" data-d="' + d + '" aria-label="' + label + '"></button>';
-  }
-  return '<div class="pad"><h1 class="display">You</h1>' +
-    '<div class="label" style="margin-top:32px">The last 12 months</div><div class="year"><div class="year-grid">' + cells + "</div></div>" +
-    '<div class="hairline" style="margin:32px 0"></div>' +
-    '<div class="label">When you sit</div>' + hourChart(t) +
-    '<p class="caption" style="margin-top:12px">Hours you started a sitting, over the last 90 days.</p></div>';
+/* You (D6.9): the month x hour map, which replaces the C8 year grid and hour view, and the way into History. */
+function firstOfMonth(d) { return d.slice(0, 8) + "01"; }
+function addMonths(m, n) {
+  var p = m.split("-").map(Number), i = p[0] * 12 + (p[1] - 1) + n;
+  return Math.floor(i / 12) + "-" + String(i % 12 + 1).padStart(2, "0") + "-01";
 }
+function monthShown(m, t) { var cur = firstOfMonth(t); return m <= cur && m >= addMonths(cur, -11); }
 
-function hourChart(t) {
-  var first = Score.addDays(t, -89), counts = Array(24).fill(0);
-  kept().forEach(function (s) { if (s.date >= first && s.date <= t) counts[new Date(s.startedAt).getHours()]++; });
-  var top = Math.max(1, Math.max.apply(null, counts));
-  var W = Math.min(432, Math.max(260, window.innerWidth - 48)), H = 120, L = 24, B = 18, T = 6, bw = (W - L) / 24;
-  function y(v) { return T + (H - T - B) * (1 - v / top); }
-  var svg = '<line x1="' + L + '" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="var(--line)"/>' +
-    '<text x="' + (L - 6) + '" y="' + (y(top) + 3) + '" text-anchor="end">' + top + "</text>";
-  counts.forEach(function (c, h) {
-    if (c) svg += '<rect x="' + (L + h * bw + bw * 0.15).toFixed(1) + '" y="' + y(c).toFixed(1) + '" width="' + (bw * 0.7).toFixed(1) + '" height="' + (y(0) - y(c)).toFixed(1) + '" fill="var(--blue2)"/>';
+function monthMap(m, t) {
+  var next = addMonths(m, 1), days = [];
+  for (var d = m; d < next; d = Score.addDays(d, 1)) days.push(d);
+  var index = {}; days.forEach(function (d, i) { index[d] = i; });
+  var cells = days.map(function () { return Array.from({ length: 24 }, function () { return { mark: "", id: null }; }); });
+  kept().forEach(function (s) {
+    var start = new Date(s.startedAt); start.setMinutes(0, 0, 0);
+    var end = Math.max(s.endedAt || s.startedAt, s.startedAt + 1000);
+    for (var h = start.getTime(); h < end; h += 3600000) {
+      var at = new Date(h), i = index[Score.ymd(at)];
+      if (i === undefined) continue;
+      var cell = cells[i][at.getHours()];
+      if (s.state === "completed") { if (cell.mark !== "f") cell.id = s.id; cell.mark = "f"; }
+      else if (!cell.mark) { cell.mark = "u"; cell.id = s.id; }
+    }
   });
-  [0, 6, 12, 18].forEach(function (h) { svg += '<text x="' + (L + h * bw + bw / 2).toFixed(1) + '" y="' + (H - 4) + '" text-anchor="middle">' + h + "</text>"; });
-  return '<svg class="chart" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" aria-hidden="true">' + svg + "</svg>";
+  var inMonth = kept().filter(function (s) { return s.date >= m && s.date < next; });
+  var sat = {}; inMonth.forEach(function (s) { if (s.date <= t) sat[s.date] = true; });
+  var usual = null;
+  if (inMonth.length >= 3) {
+    var starts = Array(24).fill(0);
+    inMonth.forEach(function (s) { starts[new Date(s.startedAt).getHours()]++; });
+    usual = starts.indexOf(Math.max.apply(null, starts));   // the earlier hour on a tie
+  }
+  return { days: days, cells: cells, inMonth: inMonth, satDays: Object.keys(sat).length,
+           dayCount: m === firstOfMonth(t) ? Number(t.slice(8)) : days.length, usual: usual };
 }
 
-/* A day's sittings, with their lengths as plain information. Discarded ones are gone, as if they never began. */
-function openDay(d) {
-  var list = kept().filter(function (s) { return s.date === d; }).sort(function (a, b) { return a.startedAt - b.startedAt; });
-  if (!list.length) return;
-  var lines = list.map(function (s) {
-    var at = new Date(s.startedAt), time = String(at.getHours()).padStart(2, "0") + ":" + String(at.getMinutes()).padStart(2, "0");
-    var mins = Math.max(1, Math.floor(s.actualSeconds / 60));
-    return '<p class="secondary num" style="margin-top:8px">' + time + " · " + mins + " min · " + (s.state === "completed" ? "completed" : "unfinished") + "</p>";
+function renderYou() {
+  var t = today(), m = UI.month || firstOfMonth(t), map = monthMap(m, t), n = map.days.length;
+  function two(h) { return String(h).padStart(2, "0"); }
+  function hm(ms) { return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+  var grid = '<div class="map" style="grid-template-columns:22px repeat(' + n + ',1fr)">';
+  for (var h = 0; h < 24; h++) {
+    grid += '<span class="h" aria-hidden="true">' + ([0, 6, 12, 18].indexOf(h) >= 0 ? two(h) : "") + "</span>";
+    for (var i = 0; i < n; i++) {
+      var c = map.cells[i][h];
+      grid += '<span class="c ' + c.mark + '"' + (c.id ? ' data-action="map-cell" data-id="' + c.id + '"' : "") + ' aria-hidden="true"></span>';
+    }
+  }
+  grid += "<span></span>" + map.days.map(function (d) { return '<span class="' + (d === t ? "today" : "") + '"></span>'; }).join("");
+  grid += "<span></span>" + map.days.map(function (d) {
+    var day = Number(d.slice(8)), date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+    var sittings = map.inMonth.filter(function (s) { return s.date === d; }).sort(function (a, b) { return a.startedAt - b.startedAt; });
+    var label = sittings.length ? date + ": " + sittings.map(function (s) { return "sat " + hm(s.startedAt) + " to " + hm(s.endedAt || s.startedAt); }).join(", ") : date + ": no sitting";
+    return '<span class="d" role="img" aria-label="' + esc(label) + '">' + ([1, 8, 15, 22, 29].indexOf(day) >= 0 ? day : "") + "</span>";
+  }).join("") + "</div>";
+  var title = Score.parseDay(m).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  return '<div class="pad"><h1 class="display">You</h1>' +
+    '<div class="month-head"><button data-action="month-prev"' + (monthShown(addMonths(m, -1), t) ? "" : " disabled") + ' aria-label="‹">‹</button>' +
+    '<span class="ui">' + esc(title) + '</span><button data-action="month-next"' + (m < firstOfMonth(t) ? "" : " disabled") + ' aria-label="›">›</button></div>' +
+    grid +
+    '<p class="secondary ink2" style="margin-top:16px">You sat on ' + map.satDays + " of " + map.dayCount + " days this month.</p>" +
+    (map.usual === null ? "" : '<p class="secondary ink2" style="margin-top:4px">You most often sit between ' + two(map.usual) + ":00 and " + two(map.usual + 1) + ":00.</p>") +
+    '<div class="hairline" style="margin:32px 0 8px"></div>' +
+    '<button class="today-line" data-action="history-all" style="font-size:16px;color:var(--ink)"><span>History</span><span>›</span></button></div>';
+}
+
+/* History (D6.6): sittings by day, newest first. Discarded sittings never appear. */
+function historyRow(s) {
+  var at = new Date(s.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  var returns = s.tapCount === 1 ? "1 return" : s.tapCount + " returns";
+  return at + " · " + posture(s.posture).label + " · " + Math.round(s.plannedSeconds / 60) + " min · " +
+    (s.state === "completed" ? "Completed" : "Unfinished") + " · " + returns;
+}
+function openHistory(focus) {
+  var byDay = {};
+  kept().forEach(function (s) { (byDay[s.date] = byDay[s.date] || []).push(s); });
+  var days = Object.keys(byDay).sort().reverse();
+  var html = '<div class="layer-inner"><button class="back" data-action="close-history" aria-label="‹">' + ICON.back + "</button>" +
+    '<h1 class="title">History</h1><p class="caption" style="margin-top:4px">Length is recorded, but it is never scored.</p>' +
+    days.map(function (d) {
+      return '<div class="hist-day" id="day-' + d + '">' + esc(Score.parseDay(d).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })) + "</div>" +
+        byDay[d].sort(function (a, b) { return a.startedAt - b.startedAt; }).map(function (s) {
+          return '<button class="hist-row' + (focus && focus.id === s.id ? " focus" : "") + '" id="sit-' + s.id + '" data-action="history-sitting" data-id="' + s.id + '"' +
+            (s.state === "completed" ? "" : " disabled") + ">" + esc(historyRow(s)) + "</button>";
+        }).join("");
+    }).join("") + "</div>";
+  openLayer(html);
+  var target = focus && (focus.id ? $("#sit-" + focus.id) : $("#day-" + focus.day));
+  if (target) target.scrollIntoView({ block: focus.id ? "center" : "start" });
+  if (focus && focus.id) {
+    var s = S.sessions.filter(function (x) { return x.id === focus.id; })[0];
+    if (s && s.state === "completed") openCheckInDetail(s);
+  }
+}
+
+/* D6.7: a completed sitting's check-in, in the check-in's own wording. */
+function openCheckInDetail(s) {
+  var answered = s.checkIn ? HINDRANCES.filter(function (h) { var v = s.checkIn[h.key]; return v !== undefined && v !== null; }) : [];
+  openSheet('<h2 class="title">' + esc(Score.parseDay(s.date).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })) + "</h2>" +
+    '<p class="secondary ink2 num" style="margin-top:4px">' + esc(historyRow(s)) + "</p>" +
+    (answered.length ? answered.map(function (h) {
+      return '<div style="margin-top:16px"><div class="ui">' + h.name + '</div><p class="secondary ink2" style="margin-top:2px">' + esc(h.q) + "</p>" +
+        '<p class="secondary" style="margin-top:2px">' + ANSWERS[s.checkIn[h.key]] + "</p></div>";
+    }).join("") : '<p class="secondary ink2" style="margin-top:16px">No check-in for this sitting</p>'));
+}
+
+/* What you met (D6.8): a mirror, not a target. Averages 0-3 and one neutral word against the previous period. */
+function renderWhatYouMet(t) {
+  var days = UI.metDays || 7, start = Score.addDays(t, -(days - 1)), prevStart = Score.addDays(start, -days);
+  function avg(key, from, to) {
+    var vals = kept().filter(function (s) { return s.checkIn && s.date >= from && s.date <= to; })
+      .map(function (s) { return s.checkIn[key]; }).filter(function (v) { return v !== undefined && v !== null; });
+    return vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+  }
+  var rows = HINDRANCES.map(function (h) {
+    var now = avg(h.key, start, t), before = avg(h.key, prevStart, Score.addDays(start, -1));
+    if (now === null) return "";
+    var word = before === null ? "" : Math.abs(now - before) < 0.25 ? "About the same" : now > before ? "More than before" : "Less than before";
+    return '<button class="met-row" data-action="met-open" data-h="' + h.key + '"><div class="line"><span>' + h.name + '</span>' +
+      '<span class="bar2"><i style="width:' + (now / 3 * 100).toFixed(1) + '%"></i></span></div>' +
+      (word ? '<div class="word">' + word + "</div>" : "") + "</button>";
   }).join("");
-  openSheet('<h2 class="title">' + esc(Score.parseDay(d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })) + "</h2>" +
-    lines + '<p class="caption" style="margin-top:16px">Length is recorded, but it is never scored.</p>');
+  return '<div class="met-head"><div class="label" style="margin:0">What you met</div><div class="met-toggle">' +
+    '<button class="' + (days === 7 ? "on" : "") + '" data-action="met-days" data-v="7">7 days</button>' +
+    '<button class="' + (days === 30 ? "on" : "") + '" data-action="met-days" data-v="30">30 days</button></div></div>' +
+    rows + '<p class="caption" style="margin-top:12px;color:var(--ink2)">These are conditions you met — not faults. Seeing them clearly is the practice.</p>';
 }
 
 /* Daily average over completed sittings only; a day with none is a gap, never a zero (D3.8). */
@@ -2177,13 +2329,15 @@ function begin(minutes, practice) {
   holdScreenOn();
   UI.menuOpen = false; closeSheet();
   SES = { id: uuid(), phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0,
-          canDiscard: true, cappedRecorded: false, panelTimer: null };
+          canDiscard: true, cappedRecorded: false, panelTimer: null, posture: practice ? "sitting" : S.posture };
   document.documentElement.classList.add("sitting"); setThemeColor("#05080C");
   var layer = $("#session");
-  layer.innerHTML = '<div class="end-zone" id="endZone"></div>' +
+  layer.innerHTML = '<div class="end-zone" id="endZone"><span class="stop">Stop</span></div>' +
     '<div class="exit" id="exitPanel" aria-hidden="true"></div>' +
     '<div class="tap-zone" id="tapZone"><svg class="hint" id="hint" viewBox="0 0 342 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24 Q171 0 342 24" fill="none" stroke="#1A2836" stroke-width="1"/></svg></div>';
   layer.style.transition = "none"; layer.style.opacity = 0; layer.hidden = false;
+  // Walking: the phone is held loosely, so everything below the Stop strip takes taps (D6.3).
+  if (SES.posture === "walking") $("#tapZone").style.height = "85%";
   bindSessionGestures();
   requestAnimationFrame(function () { requestAnimationFrame(function () {
     layer.style.transition = "opacity " + ms(900) + "ms ease-out"; layer.style.opacity = 1;
@@ -2282,17 +2436,17 @@ function writeCheckpoint() {
   if (!SES || SES.practice || SES.phase !== "running") return;
   var now = Date.now();
   SES.lastCheckpoint = now;
-  S.checkpoint = { id: SES.id, startedAt: SES.startedAt, plannedMs: SES.plannedMs, taps: SES.taps.slice(),
+  S.checkpoint = { id: SES.id, startedAt: SES.startedAt, plannedMs: SES.plannedMs, taps: SES.taps.slice(), posture: SES.posture,
     lastKnownAt: SES.awayStart !== null ? SES.awayStart : now, awayTotal: SES.awayTotal, awayStart: SES.awayStart };
   save();
 }
 
-function record(id, startedAt, plannedMs, taps, elapsedMs, state, ending) {
+function record(id, startedAt, plannedMs, taps, elapsedMs, state, ending, posture) {
   var recorded = Math.min(elapsedMs, plannedMs), endedAt = startedAt + recorded;
   var kept = taps.filter(function (t) { return t <= recorded; });
   return { id: id, date: Score.ymd(new Date(endedAt)), startedAt: startedAt, endedAt: endedAt,
     plannedSeconds: Math.round(plannedMs / 1000), actualSeconds: Math.floor(recorded / 1000),
-    state: state, ending: ending, taps: kept, tapCount: kept.length, checkIn: null };
+    state: state, ending: ending, taps: kept, tapCount: kept.length, checkIn: null, posture: posture || "sitting" };
 }
 
 /** reason: completed | ended | discarded | away */
@@ -2308,7 +2462,7 @@ function finish(reason, endedAt) {
   var stored = null, wasPractice = SES.practice;
   if (!wasPractice) {
     S.checkpoint = null;
-    if (state) { stored = record(SES.id, SES.startedAt, SES.plannedMs, SES.taps, elapsed, state, reason); S.sessions.push(stored); }
+    if (state) { stored = record(SES.id, SES.startedAt, SES.plannedMs, SES.taps, elapsed, state, reason, SES.posture); S.sessions.push(stored); }
     // Kept on the phone to count against the cap, in no ratio, never in the results as a sitting (D5.4). Under 60 s it
     // is not stored either way and costs no discard.
     if (state === "discarded") S.discards.push({ at: Date.now(), week: Score.weekStart(today()), capped: false });
@@ -2339,7 +2493,7 @@ function recoverCheckpoint() {
   if (c.awayStart !== null && c.awayStart !== undefined && c.awayTotal + (c.lastKnownAt - c.awayStart) > AWAY_ALLOWANCE_MS) endAt = c.awayStart;
   var elapsed = endAt - c.startedAt;
   if (elapsed >= MINIMUM_STORED_MS && !S.sessions.some(function (s) { return s.id === c.id; })) {
-    S.sessions.push(record(c.id, c.startedAt, c.plannedMs, c.taps || [], elapsed, "incomplete", "closed"));
+    S.sessions.push(record(c.id, c.startedAt, c.plannedMs, c.taps || [], elapsed, "incomplete", "closed", c.posture));
     S.interrupted = true;
   }
   save();
@@ -2440,7 +2594,7 @@ function resultsText() {
     "Sittings: " + sessions.length + " (" + completed + " completed)"
   ];
   sessions.forEach(function (s, n) {
-    lines.push((n + 1) + ". " + time(s.startedAt) + " · planned " + Math.round(s.plannedSeconds / 60) + " min · sat " + clock(s.actualSeconds * 1000) +
+    lines.push((n + 1) + ". " + time(s.startedAt) + " · " + (s.posture || "sitting") + " · planned " + Math.round(s.plannedSeconds / 60) + " min · sat " + clock(s.actualSeconds * 1000) +
       " · " + s.state + (s.ending && s.ending !== "completed" ? " (" + { held: "held to end", ended: "ended", away: "away too long", closed: "page closed" }[s.ending] + ")" : "") +
       " · " + s.tapCount + (s.tapCount === 1 ? " tap" : " taps") + (s.taps.length ? " at " + s.taps.map(clock).join(" ") : ""));
     if (s.checkIn) lines.push("   check-in: " + HINDRANCES.map(function (h) { var v = s.checkIn[h.key]; return h.name + " " + (v === undefined || v === null ? "-" : ANSWERS[v]); }).join(", "));
@@ -2527,7 +2681,16 @@ var actions = {
     if (n === null) { $("#sit-custom-error").hidden = false; return; }
     UI.sittingMinutes = n; closeSheet(); render();
   },
-  "year-day": function (el) { openDay(el.dataset.d); },
+  "posture": function (el) { S.posture = el.dataset.v; save(); render(); },
+  "history-today": function () { openHistory({ day: today() }); },
+  "history-all": function () { openHistory(null); },
+  "history-sitting": function (el) { var s = S.sessions.filter(function (x) { return x.id === el.dataset.id; })[0]; if (s && s.state === "completed") openCheckInDetail(s); },
+  "close-history": function () { closeLayer(); closeSheet(); render(); },
+  "map-cell": function (el) { openHistory({ id: el.dataset.id }); },
+  "month-prev": function () { var t = today(), m = addMonths(UI.month || firstOfMonth(t), -1); if (monthShown(m, t)) { UI.month = m; render(); } },
+  "month-next": function () { var t = today(), m = addMonths(UI.month || firstOfMonth(t), 1); if (m <= firstOfMonth(t)) { UI.month = m === firstOfMonth(t) ? null : m; render(); } },
+  "met-days": function (el) { UI.metDays = Number(el.dataset.v); render(); },
+  "met-open": function (el) { var h = HINDRANCES.filter(function (x) { return x.key === el.dataset.h; })[0]; openSheet('<h2 class="title">' + h.name + '</h2><p class="reading" style="margin-top:12px">' + esc(INSTRUCTIONS[h.key]) + "</p>"); },
   "onb-try": function () { begin(1, true); },
   "onb-finish": function () {
     var t = $("#onb-time"); if (t && t.value) S.reminder = t.value;
