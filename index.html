@@ -17,7 +17,7 @@
 <style>
 :root{
   --bg:#FAF9F6;--surface:#FFFFFF;--ink:#0E1B2A;--ink2:#4A5A6B;--ink3:#8B98A5;--line:#E4E1DA;
-  --blue:#12355B;--blue2:#2F6FB2;--bluewash:#EAF0F7;--gold:#B8912F;--goldwash:#F3ECD9;
+  --accent:#12355B;--accent2:#2F6FB2;--accentwash:#EAF0F7;--gold:#B8912F;--goldwash:#F3ECD9;
   --session:#05080C;--session-line:#1A2836;
   --serif:"New York",ui-serif,"Iowan Old Style",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
@@ -26,8 +26,17 @@
 }
 @media (prefers-color-scheme:dark){
   :root{--bg:#0A1017;--surface:#121B26;--ink:#EDEAE3;--ink2:#9DAAB8;--ink3:#65737F;--line:#1E2A38;
-    --blue:#7FB0E0;--blue2:#4E8CC4;--bluewash:#16273A;--gold:#D9B64E;--goldwash:#2A2414}
+    --accent:#7FB0E0;--accent2:#4E8CC4;--accentwash:#16273A;--gold:#D9B64E;--goldwash:#2A2414}
 }
+/* Colour themes (D10.2): only the accent family changes. Gold and the session screen never do. */
+:root[data-theme="jade"]{--accent:#0F4C3A;--accent2:#2E7D63;--accentwash:#E6F1EC}
+:root[data-theme="onyx"]{--accent:#1C1C1E;--accent2:#4A4A4F;--accentwash:#EEEDEA}
+@media (prefers-color-scheme:dark){
+  :root[data-theme="jade"]{--accent:#7CC7A8;--accent2:#4FA584;--accentwash:#13281F}
+  :root[data-theme="onyx"]{--accent:#D8D4CC;--accent2:#969089;--accentwash:#1F1E1C}
+}
+/* A theme change cross-fades over the screen transition, 320ms (150ms under Reduce Motion). */
+html.theming *,html.theming *::before,html.theming *::after{transition:background-color var(--screen) ease-in-out,color var(--screen) ease-in-out,border-color var(--screen) ease-in-out,fill var(--screen) ease-in-out,stroke var(--screen) ease-in-out!important}
 @media (prefers-reduced-motion:reduce){:root{--screen:150ms}}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
@@ -53,31 +62,31 @@ input,textarea{font:inherit;color:inherit}
 /* Pieces */
 .pad{padding:24px 24px 32px}
 .hairline{height:1px;background:var(--line)}
-.primary{display:block;width:100%;height:52px;border-radius:8px;background:var(--blue);color:var(--bg);font-size:16px;font-weight:500}
+.primary{display:block;width:100%;height:52px;border-radius:8px;background:var(--accent);color:var(--bg);font-size:16px;font-weight:500}
 .primary:active{opacity:.85}
 .outline{display:block;width:100%;height:52px;border-radius:8px;border:1px solid var(--line);font-size:16px;font-weight:500;color:var(--ink)}
-.textlink{color:var(--blue2);font-size:14px;padding:6px 0}
+.textlink{color:var(--accent2);font-size:14px;padding:6px 0}
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .label{font-size:14px;color:var(--ink2);margin-bottom:10px}
 .seg{display:flex;gap:8px;flex-wrap:wrap}
 .seg button{min-width:44px;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:16px;font-weight:500;font-variant-numeric:tabular-nums}
-.seg button.on{background:var(--bluewash);border-color:var(--bluewash)}
+.seg button.on{background:var(--accentwash);border-color:var(--accentwash)}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chips button{min-height:36px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px}
-.chips button.on{background:var(--bluewash);border-color:var(--bluewash)}
+.chips button.on{background:var(--accentwash);border-color:var(--accentwash)}
 .options button{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 12px;text-align:left;font-size:16px;font-weight:500}
 .options button+button{border-top:1px solid var(--line)}
-.options button.on{background:var(--bluewash)}
+.options button.on{background:var(--accentwash)}
 .radio{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--ink3);flex:none;position:relative}
 .on .radio{border-color:var(--ink)}
 .on .radio::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--ink)}
 .switch{width:51px;height:31px;border-radius:16px;background:var(--line);position:relative;flex:none;transition:background .2s}
 .switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
-.switch.on{background:var(--blue2)}.switch.on::after{left:22px}
+.switch.on{background:var(--accent2)}.switch.on::after{left:22px}
 .field{width:100%;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:16px}
 textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .check{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.45;color:var(--ink2);cursor:pointer}
-.check input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--blue2)}
+.check input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--accent2)}
 .empty{min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 40px;color:var(--ink2)}
 .back{width:44px;height:44px;display:flex;align-items:center;justify-content:center;margin-left:-12px}
 
@@ -86,7 +95,7 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .onb-top{display:flex;align-items:center;gap:16px;height:36px}
 .progress{flex:1;display:flex;gap:6px}
 .progress i{flex:1;height:2px;background:var(--line)}
-.progress i.on{background:var(--blue)}
+.progress i.on{background:var(--accent)}
 .skip{font-size:14px;color:var(--ink3);padding:8px 0}
 .onb-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:24px 0}
 .onb-body.top{justify-content:flex-start}
@@ -107,7 +116,7 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .arc-num small{font-size:12px;color:var(--ink3);margin-top:2px}
 .postures{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:-8px 0 28px}
 .postures button{min-height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;font-size:14px}
-.postures button.on{background:var(--bluewash);border-color:var(--bluewash)}
+.postures button.on{background:var(--accentwash);border-color:var(--accentwash)}
 .today-line{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:44px;font-size:14px;color:var(--ink2)}
 .today-line span:last-child{color:var(--ink3)}
 
@@ -119,14 +128,14 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 
 /* Week */
 .components{display:grid;grid-template-columns:auto auto 1fr auto;gap:14px 12px;align-items:center;font-size:14px;margin-top:24px}
-.bar{height:6px;background:var(--bluewash);position:relative;min-width:32px}
-.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue2)}
+.bar{height:6px;background:var(--accentwash);position:relative;min-width:32px}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent2)}
 .grid30{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
-.grid30 div{aspect-ratio:1;background:var(--bluewash);cursor:pointer}
+.grid30 div{aspect-ratio:1;background:var(--accentwash);cursor:pointer}
 /* D8.2: shaded by finished sessions, never by minutes; a met-goal week keeps a gold ring and no solid gold. */
-.s1{background:color-mix(in srgb,var(--blue2) 35%,transparent)!important}
-.s2{background:color-mix(in srgb,var(--blue2) 65%,transparent)!important}
-.s3{background:var(--blue2)!important}
+.s1{background:color-mix(in srgb,var(--accent2) 35%,transparent)!important}
+.s2{background:color-mix(in srgb,var(--accent2) 65%,transparent)!important}
+.s3{background:var(--accent2)!important}
 .ring{box-shadow:inset 0 0 0 1.5px var(--gold)!important}
 .legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--ink3)}
 .legend i{width:10px;height:10px;display:inline-block}
@@ -169,7 +178,7 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 
 /* Sit: this week's seven days (C6) */
 .strip{display:flex;gap:8px;padding:4px 0 10px}
-.strip i{width:20px;height:20px;background:var(--bluewash);display:block}
+.strip i{width:20px;height:20px;background:var(--accentwash);display:block}
 .strip i.today{box-shadow:inset 0 0 0 1px var(--ink3)}
 .change{padding-top:14px}
 .change .row{padding-top:4px}
@@ -186,13 +195,13 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .hist-day{font-size:14px;color:var(--ink2);padding:24px 0 8px;border-bottom:1px solid var(--line)}
 .hist-row{display:block;width:100%;text-align:left;min-height:44px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
 .hist-row:disabled{cursor:default;opacity:1}
-.hist-row.focus{background:var(--bluewash);padding-left:8px}
+.hist-row.focus{background:var(--accentwash);padding-left:8px}
 
 /* What you met (D6.8): everything in ink-2, no arrows, no colour */
 .met-head{display:flex;justify-content:space-between;align-items:center}
 .met-toggle{display:flex;gap:6px}
 .met-toggle button{font-size:12px;color:var(--ink2);padding:4px 8px;border-radius:8px}
-.met-toggle button.on{background:var(--bluewash)}
+.met-toggle button.on{background:var(--accentwash)}
 .met-row{display:block;width:100%;text-align:left;padding:8px 0;color:var(--ink2)}
 .met-row .line{display:grid;grid-template-columns:104px 1fr;gap:12px;align-items:center;font-size:14px}
 .met-row .bar2{height:6px;background:var(--line);position:relative}
@@ -205,8 +214,8 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .month-head button:disabled{color:var(--line)}
 .map{display:grid;gap:1px;margin-top:8px}
 .map .c{height:7px}
-.map .c.f{background:var(--blue2)}
-.map .c.u{box-shadow:inset 0 0 0 1px var(--blue2)}
+.map .c.f{background:var(--accent2)}
+.map .c.u{box-shadow:inset 0 0 0 1px var(--accent2)}
 .map .h,.map .d{font-size:9px;color:var(--ink3);font-variant-numeric:tabular-nums;line-height:7px;white-space:nowrap}
 .map .h{text-align:right;padding-right:4px}
 .map .d{line-height:12px;text-align:center;overflow:visible}
@@ -1801,7 +1810,8 @@ function freshState() {
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
     experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
-    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now(), interval: null
+    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now(), interval: null,
+    theme: "sapphire", bell: "temple-bowl"
   };
 }
 function testerCode() {
@@ -2204,6 +2214,9 @@ function renderYou() {
     row("Usual posture", posture(S.posture).label, "you-sheet-posture") +
     row("Reminder", "Off", null, true) +
     '<div style="margin-top:24px"></div>' + row("About you", null, "you-sheet-about") +
+    '<div class="label" style="margin-top:24px">Appearance</div>' +
+    row("Theme", themeName(S.theme), "you-sheet-theme") +
+    row("Bell", bellSet(S.bell).label, "you-sheet-bell") +
     '<div class="label" style="margin-top:24px">Privacy</div>' +
     row("Use my answers in research", a.consent ? "On" : "Off", "you-research", minor) +
     row("Export my data", null, "you-export") + "</div>";
@@ -2226,6 +2239,14 @@ function youSheet(kind) {
     html = '<h2 class="title">How long is one session?</h2><div class="seg" style="margin-top:16px">' + LENGTHS.map(function (n) {
       return '<button class="' + (!custom && S.goalMinutes === n ? "on" : "") + '" data-action="you-length" data-v="' + n + '">' + n + "</button>";
     }).join("") + '<button class="' + (custom ? "on" : "") + '" data-action="custom-sheet" data-scope="goal">Custom</button></div><p class="caption" style="margin-top:8px">minutes</p>';
+  } else if (kind === "theme") {
+    html = '<h2 class="title">Theme</h2><div class="chips" style="margin-top:16px">' + THEMES.map(function (t) {
+      return '<button class="' + (S.theme === t.key ? "on" : "") + '" data-action="you-theme" data-v="' + t.key + '">' + t.label + "</button>";
+    }).join("") + "</div>";
+  } else if (kind === "bell") {
+    html = '<h2 class="title">Bell</h2><div class="chips" style="margin-top:16px">' + BELL_SETS.map(function (b) {
+      return '<button class="' + (S.bell === b.key ? "on" : "") + '" data-action="you-bell" data-v="' + b.key + '">' + b.label + "</button>";
+    }).join("") + "</div>";
   } else if (kind === "posture") {
     html = '<h2 class="title">Usual posture</h2><div class="postures" style="justify-content:flex-start;margin:16px 0 0">' + POSTURES.map(function (p) {
       return '<button class="' + (S.posture === p.key ? "on" : "") + '" data-action="you-posture" data-v="' + p.key + '">' + p.label + "</button>";
@@ -2359,8 +2380,8 @@ function returnsChart(first, t) {
   pts.forEach(function (p) { if (p) cur.push(p); else if (cur.length) { segments.push(cur); cur = []; } });
   if (cur.length) segments.push(cur);
   segments.forEach(function (seg) {
-    if (seg.length === 1) svg += '<circle cx="' + x(seg[0].i) + '" cy="' + y(seg[0].avg) + '" r="2" fill="var(--blue2)"/>';
-    else svg += '<polyline points="' + seg.map(function (p) { return x(p.i).toFixed(1) + "," + y(p.avg).toFixed(1); }).join(" ") + '" fill="none" stroke="var(--blue2)" stroke-width="1"/>';
+    if (seg.length === 1) svg += '<circle cx="' + x(seg[0].i) + '" cy="' + y(seg[0].avg) + '" r="2" fill="var(--accent2)"/>';
+    else svg += '<polyline points="' + seg.map(function (p) { return x(p.i).toFixed(1) + "," + y(p.avg).toFixed(1); }).join(" ") + '" fill="none" stroke="var(--accent2)" stroke-width="1"/>';
   });
   return '<svg class="chart" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + " " + H + '" aria-hidden="true">' + svg + "</svg>";
 }
@@ -2407,22 +2428,59 @@ function unlockAudio() {
     src.buffer = silent; src.connect(AC.destination); src.start(0);   // iOS starts audio only inside a tap
   } catch (e) { AC = null; }
 }
-/* The opening and closing bells use the defaults; the interval bell is softer and shorter (D9.4). */
-function bellBuffer(fundamental, length, decayScale, level) {
-  length = length || 5; decayScale = decayScale || 1; level = level || 0.5;
+/* Partials as [ratio, amplitude, decay]: the bowl, and the brighter, shorter-lived small bell (D10.1). */
+var BOWL = [[1.000, 1.00, 1.30], [1.004, 0.50, 1.30], [2.710, 0.40, 0.80], [5.150, 0.18, 0.45], [8.400, 0.08, 0.25]];
+var SMALL_BELL = [[1.000, 1.00, 0.90], [2.000, 0.55, 0.60], [3.010, 0.35, 0.40], [4.200, 0.22, 0.25], [5.430, 0.12, 0.15]];
+/* Fills a buffer from voice(t) and scales it so its loudest sample is `level`. */
+function renderSound(length, level, voice) {
   var rate = AC.sampleRate, frames = Math.floor(length * rate);
-  var buffer = AC.createBuffer(1, frames, rate), data = buffer.getChannelData(0);
-  var partials = [[1.000, 1.00, 1.30], [1.004, 0.50, 1.30], [2.710, 0.40, 0.80], [5.150, 0.18, 0.45], [8.400, 0.08, 0.25]];
-  var attack = 0.004, release = 0.2, peak = 0;
-  for (var i = 0; i < frames; i++) {
-    var t = i / rate, v = 0;
-    for (var p = 0; p < partials.length; p++) v += partials[p][1] * Math.exp(-t / (partials[p][2] * decayScale)) * Math.sin(2 * Math.PI * fundamental * partials[p][0] * t);
-    v *= Math.min(1, t / attack) * Math.min(1, (length - t) / release);
-    data[i] = v; if (Math.abs(v) > peak) peak = Math.abs(v);
-  }
+  var buffer = AC.createBuffer(1, frames, rate), data = buffer.getChannelData(0), peak = 0;
+  for (var i = 0; i < frames; i++) { var v = voice(i / rate); data[i] = v; if (Math.abs(v) > peak) peak = Math.abs(v); }
   if (peak > 0) for (var j = 0; j < frames; j++) data[j] *= level / peak;
   return buffer;
 }
+/* The opening and closing bells use the defaults; the interval bell is softer and shorter (D9.4). */
+function bellBuffer(fundamental, length, decayScale, level, partials) {
+  length = length || 5; decayScale = decayScale || 1; level = level || 0.5; partials = partials || BOWL;
+  var attack = 0.004, release = 0.2;
+  return renderSound(length, level, function (t) {
+    var v = 0;
+    for (var p = 0; p < partials.length; p++) v += partials[p][1] * Math.exp(-t / (partials[p][2] * decayScale)) * Math.sin(2 * Math.PI * fundamental * partials[p][0] * t);
+    return v * Math.min(1, t / attack) * Math.min(1, (length - t) / release);
+  });
+}
+/* `count` dry wooden knocks, 0.45 s apart, as BellSynth.knocks. */
+function knocks(count, level) {
+  var gap = 0.45, modes = [[820, 1.00, 0.045], [1930, 0.50, 0.020], [3150, 0.30, 0.010]];
+  var seed = 0x9E3779B9, click = [], clickLength = Math.floor(0.012 * AC.sampleRate);
+  for (var c = 0; c < clickLength; c++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; click.push(seed / 4294967295 * 2 - 1); }
+  return renderSound(gap * (count - 1) + 0.4, level, function (t) {
+    var v = 0;
+    for (var k = 0; k < count; k++) {
+      var local = t - k * gap;
+      if (local < 0) continue;
+      var onset = Math.min(1, local / 0.0005);
+      for (var m = 0; m < modes.length; m++) v += onset * modes[m][1] * Math.exp(-local / modes[m][2]) * Math.sin(2 * Math.PI * modes[m][0] * local);
+      var n = Math.floor(local * AC.sampleRate);
+      if (n < clickLength) v += 0.6 * Math.exp(-local / 0.002) * click[n];
+    }
+    return v;
+  });
+}
+/* Bell sets (D10.1). Each is opening, interval, closing; the interval is always the softest. The app's fourth set,
+   Vibration only, is not offered here: Safari on iPhone cannot vibrate. */
+var BELL_SETS = [
+  { key: "temple-bowl", label: "Temple bowl", make: {
+    opening: function () { return bellBuffer(220); }, closing: function () { return bellBuffer(196); },
+    interval: function () { return bellBuffer(330, 2, 0.35, 0.25); } } },
+  { key: "small-bell", label: "Small bell", make: {
+    opening: function () { return bellBuffer(880, 3, 0.6, 0.45, SMALL_BELL); }, closing: function () { return bellBuffer(784, 3, 0.6, 0.45, SMALL_BELL); },
+    interval: function () { return bellBuffer(1175, 1.5, 0.3, 0.22, SMALL_BELL); } } },
+  { key: "wooden-clapper", label: "Wooden clapper", make: {
+    opening: function () { return knocks(2, 0.55); }, closing: function () { return knocks(2, 0.55); },
+    interval: function () { return knocks(1, 0.25); } } }
+];
+function bellSet(key) { return BELL_SETS.filter(function (b) { return b.key === key; })[0] || BELL_SETS[0]; }
 function play(buffer, gain) {
   if (!AC) return;
   try {
@@ -2431,11 +2489,10 @@ function play(buffer, gain) {
     src.buffer = buffer; g.gain.value = gain; src.connect(g).connect(AC.destination); src.start();
   } catch (e) {}
 }
-function strike(kind) {   // opening 220 Hz, closing 196 Hz, interval 330 Hz soft and short, as BellPlayer.swift
+function strike(kind) {   // the chosen set's opening, interval or closing sound, as BellPlayer.swift
   if (!AC) return;
-  if (kind === "interval") { play(BUFFERS.interval || (BUFFERS.interval = bellBuffer(330, 2, 0.35, 0.25)), 1); return; }
-  var f = kind === "opening" ? 220 : 196;
-  play(BUFFERS[f] || (BUFFERS[f] = bellBuffer(f)), 1);
+  var set = bellSet((SES && SES.bell) || S.bell), key = set.key + "-" + kind;   // a session keeps the set it began with
+  play(BUFFERS[key] || (BUFFERS[key] = set.make[kind]()), 1);
 }
 function tapClick() {
   if (!AC || !S.tapSound) return;
@@ -2458,6 +2515,18 @@ async function holdScreenOn() {
   catch (e) { wakeLock = null; }
 }
 function releaseScreen() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+var THEMES = [{ key: "sapphire", label: "Sapphire" }, { key: "jade", label: "Jade" }, { key: "onyx", label: "Onyx" }];
+function themeName(key) { return (THEMES.filter(function (t) { return t.key === key; })[0] || THEMES[0]).label; }
+/* D10.2: the theme applies at once across the page; `fade` cross-fades it over the screen transition. */
+var themeFade = null;
+function applyTheme(fade) {
+  var root = document.documentElement;
+  if (fade) {
+    root.classList.add("theming"); clearTimeout(themeFade);
+    themeFade = setTimeout(function () { root.classList.remove("theming"); }, 400);
+  }
+  if (S.theme && S.theme !== "sapphire") root.dataset.theme = S.theme; else delete root.dataset.theme;
+}
 function setThemeColor(color) {
   document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
     if (!m.dataset.original) m.dataset.original = m.content;
@@ -2470,7 +2539,7 @@ function begin(minutes, practice) {
   unlockAudio();
   holdScreenOn();
   UI.menuOpen = false; closeSheet();
-  SES = { id: uuid(), phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0,
+  SES = { id: uuid(), bell: S.bell, phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0,
           canDiscard: true, cappedRecorded: false, panelTimer: null, posture: practice ? "sitting" : S.posture,
           interval: !practice && S.interval && intervalAllowed(S.interval, minutes) ? S.interval : null, nextInterval: 0 };
   SES.intervalAt = SES.interval ? intervalOffsetsMs(SES.interval, SES.plannedMs) : [];
@@ -2840,6 +2909,13 @@ var actions = {
   "you-sheet-posture": function () { youSheet("posture"); },
   "you-sheet-about": function () { youSheet("about"); },
   "you-posture": function (el) { S.posture = el.dataset.v; save(); render(); youSheet("posture"); },
+  "you-sheet-theme": function () { youSheet("theme"); },
+  "you-sheet-bell": function () { youSheet("bell"); },
+  "you-theme": function (el) { S.theme = el.dataset.v; save(); applyTheme(true); render(); youSheet("theme"); },
+  "you-bell": function (el) {
+    S.bell = el.dataset.v; save(); render(); youSheet("bell");
+    unlockAudio(); strike("opening");   // each choice plays its opening sound once (D10.1)
+  },
   "you-research": function () {
     if (S.about.age === UNDER_18) return;   // never set for someone under 18 (D5.1)
     S.about.consent = !S.about.consent; S.about.consentUpdatedAt = new Date().toISOString(); save(); render();
@@ -2956,6 +3032,7 @@ if (params.get("selftest") === "1") {
     S.createdAt = Math.min.apply(null, [S.createdAt || Date.now()].concat(S.sessions.map(function (x) { return x.startedAt; }))); save();
   }
   applyPendingGoal();
+  applyTheme(false);
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && S && !SES) { var before = S.goalDays; applyPendingGoal(); if (S.goalDays !== before) render(); } });
   recoverCheckpoint();
   if (S.step === 2 && !UI.draftAbout) UI.draftAbout = Object.assign({}, S.about);
