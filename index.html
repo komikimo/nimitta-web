@@ -147,8 +147,8 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 
 /* The sitting: ignores the theme (UX spec §2) */
 #session{position:fixed;inset:0;z-index:60;background:var(--session);opacity:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.end-zone{position:absolute;top:0;left:0;right:0;height:15%;display:flex;align-items:flex-start;justify-content:center;padding-top:calc(env(safe-area-inset-top) + 20px)}
-.stop{font-size:14px;color:var(--session-line);font-family:var(--sans)}
+.end-zone{position:absolute;top:0;left:0;right:0;height:15%;display:flex;align-items:flex-start;justify-content:center;padding-top:calc(env(safe-area-inset-top) + 8px)}
+.stop{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;font-size:15px;font-weight:500;color:rgba(255,255,255,.6);font-family:var(--sans)}
 .hold{font-size:12px;letter-spacing:.2px;color:var(--session-line);opacity:0;transition:opacity var(--screen) ease-in-out}
 .tap-zone{position:absolute;left:0;right:0;bottom:0;height:50%}
 .hint{position:absolute;left:24px;bottom:calc(8px + env(safe-area-inset-bottom));height:24px;width:calc(100% - 48px);transition:opacity .9s ease-out}
@@ -1707,7 +1707,7 @@ var HINDRANCES = [
   { key: "resisting", name: "Resisting", q: "Was there irritation, or a wish for it to be over?",
     cue: "Spend two minutes wishing yourself well before you begin." },
   { key: "dullness", name: "Dullness", q: "Was the mind foggy, heavy, or close to sleep?",
-    cue: "Sit earlier in the day. Straighten the spine, open the eyes halfway, and place attention at the tip of the nose. Try a shorter sitting." },
+    cue: "Practise earlier in the day. Straighten the spine, open the eyes halfway, and place attention at the tip of the nose. Try a shorter session." },
   { key: "restlessness", name: "Restlessness", q: "Was the mind busy, jumpy, or worried?",
     cue: "Count breaths from one to ten, then begin again. Let the out-breath be longer than the in-breath. Move attention down to the abdomen." },
   { key: "doubt", name: "Doubt", q: "Were you unsure you were doing it right, or that it's worth it?",
@@ -1727,10 +1727,10 @@ var WORK = ["Student", "Healthcare", "Engineering or IT", "Science or research",
 var GOAL_DAYS = [1, 2, 3, 4, 5, 6, 7];
 /* D6.3: posture, stored on each sitting and never scored. D6.2: where to rest attention, verbatim. */
 var POSTURES = [
-  { key: "sitting", label: "Sitting", anchor: "Rest your attention at the tip of the nose, where the breath touches. Stay relaxed. Don't follow the breath inside." },
-  { key: "standing", label: "Standing", anchor: "Stand at ease, knees soft. Rest your attention at the tip of the nose, where the breath touches. Don't follow the breath inside." },
-  { key: "walking", label: "Walking", anchor: "Walk slowly on a short path. Rest your attention on the soles of the feet — lifting, moving, placing. At the end, stop, turn, and begin again." },
-  { key: "lying", label: "Lying down", anchor: "Lie on your back, arms by your sides. Rest your attention at the tip of the nose, where the breath touches. If you grow sleepy, sit up." }
+  { key: "sitting", label: "Sitting", title: "Sit", anchor: "Rest your attention at the tip of the nose, where the breath touches. Stay relaxed. Don't follow the breath inside." },
+  { key: "standing", label: "Standing", title: "Stand", anchor: "Stand at ease, knees soft. Rest your attention at the tip of the nose, where the breath touches. Don't follow the breath inside." },
+  { key: "walking", label: "Walking", title: "Walk", anchor: "Walk slowly on a short path. Rest your attention on the soles of the feet — lifting, moving, placing. At the end, stop, turn, and begin again." },
+  { key: "lying", label: "Lying down", title: "Lie down", anchor: "Lie on your back, arms by your sides. Rest your attention at the tip of the nose, where the breath touches. If you grow sleepy, sit up." }
 ];
 function posture(key) { return POSTURES.filter(function (p) { return p.key === key; })[0] || POSTURES[0]; }
 /* Dhamma Framework §3, opened from What you met (D6.8). */
@@ -1751,7 +1751,7 @@ function customMinutes(text) {
   return n >= CUSTOM_MIN && n <= CUSTOM_MAX ? n : null;
 }
 var SURVEY = [
-  "Did the tap pull you out of the sitting?",
+  "Did the tap pull you out of the session?",
   "Did you start hunting for distraction so that you could tap?",
   "Would you want to use this every day?"
 ];
@@ -1762,9 +1762,9 @@ var WHAT_IS_THIS = '<p class="reading">These five are described in Buddhist trad
 
 /* NOT-IN-SPEC: strings a browser needs and the app does not have. Listed in the report for approval. */
 var TXT = {
-  storageWarning: "Your sittings are saved only in this browser, on this phone. Clearing your browser data erases them. Open this page the same way each time.",
+  storageWarning: "Your sessions are saved only in this browser, on this phone. Clearing your browser data erases them. Open this page the same way each time.",
   tapSound: "Tap sound",
-  noWakeLock: "This browser may let the screen sleep. Set Auto-Lock to Never while you sit.",
+  noWakeLock: "This browser may let the screen sleep. Set Auto-Lock to Never while you practise.",
   pasteBack: "Then paste them into a message to the person who sent you this link.",
   copied: "Copied",
   copyByHand: "Copying did not work here. Select all of the text below and copy it."
@@ -1781,7 +1781,7 @@ function freshState() {
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
     experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
-    checkpoint: null, survey: null, discards: [], posture: "sitting"
+    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null
   };
 }
 function testerCode() {
@@ -1877,7 +1877,8 @@ function render() {
     return;
   }
   tabbar.hidden = false; app.classList.remove("no-tabs");
-  tabbar.innerHTML = [["sit", "Sit"], ["week", "Week"], ["you", "You"]].map(function (t) {
+  // Practice · Record · You (D7.3); League joins between Record and You in Stage B.
+  tabbar.innerHTML = [["sit", "Practice"], ["week", "Record"], ["you", "You"]].map(function (t) {
     return '<button class="' + (UI.tab === t[0] ? "on" : "") + '" data-action="tab" data-tab="' + t[0] + '">' + ICON[t[0]] + "<span>" + t[1] + "</span></button>";
   }).join("");
   app.innerHTML = UI.tab === "sit" ? renderSit() : UI.tab === "week" ? renderWeek() : renderYou();
@@ -1892,7 +1893,7 @@ function renderOnboarding() {
   if (step === 0) {
     body = '<h1 class="display">Nimitta</h1>' +
       '<p class="reading">A meditation app that measures how you practise — not how your mind feels.</p>' +
-      '<p class="reading ink2">We can see whether you sat, whether you stayed, and whether you kept noticing.<br>We cannot see your mind. No app can. We will never pretend to.</p>';
+      '<p class="reading ink2">We can see whether you practised, whether you stayed, and whether you kept noticing.<br>We cannot see your mind. No app can. We will never pretend to.</p>';
     foot = '<button class="primary" data-action="onb-next">Begin</button><button class="textlink" data-action="why">Why Nimitta?</button>';
   } else if (step === 1) {
     body = '<h1 class="title">Your account</h1>' +
@@ -1922,24 +1923,24 @@ function renderOnboarding() {
       return '<button class="' + (S.experience === i ? "on" : "") + '" data-action="onb-exp" data-v="' + i + '"><span class="radio"></span>' + esc(o) + "</button>";
     }).join("") + "</div>";
   } else if (step === 4) {
-    body = '<h1 class="title">How many days a week will you sit?</h1>' +
+    body = '<h1 class="title">How many days a week will you practise?</h1>' +
       '<div class="seg">' + GOAL_DAYS.map(function (n) { return '<button class="' + (S.goalDays === n ? "on" : "") + '" data-action="onb-days" data-v="' + n + '">' + n + "</button>"; }).join("") + "</div>" +
-      '<h1 class="title" style="margin-top:12px">How long is one sitting?</h1>' +
+      '<h1 class="title" style="margin-top:12px">How long is one session?</h1>' +
       '<div class="seg">' + LENGTHS.map(function (n) { return '<button class="' + (!UI.customOpen && S.goalMinutes === n ? "on" : "") + '" data-action="onb-len" data-v="' + n + '">' + n + "</button>"; }).join("") +
       '<button class="' + (UI.customOpen ? "on" : "") + '" data-action="onb-custom">Custom</button></div>' +
       (UI.customOpen ? '<div class="row" style="justify-content:flex-start;align-items:center;gap:12px;margin-top:-4px"><input class="field" id="onb-custom" inputmode="numeric" maxlength="3" style="width:96px" value="' + esc(UI.customText) + '"><span class="secondary ink2">minutes</span></div>' +
         (UI.customError ? '<p class="caption" style="margin-top:-8px">Enter whole minutes from 1 to 180.</p>' : "")
         : '<p class="secondary ink2" style="margin-top:-8px">minutes</p>') +
-      '<p class="reading ink2" style="font-style:italic;font-size:17px">Sitting every day is the tradition. But choose what you will actually do — your score is based on keeping your own word, not on choosing a bigger number.</p>';
+      '<p class="reading ink2" style="font-style:italic;font-size:17px">Practising every day is the tradition. But choose what you will actually do — your score is based on keeping your own word, not on choosing a bigger number.</p>';
     foot = '<button class="primary" data-action="onb-next">Continue</button>';
   } else if (step === 5) {
-    body = '<p class="reading">While you sit, your mind will wander. That is not failure — that is the practice.</p>' +
+    body = '<p class="reading">While you practise, your mind will wander. That is not failure — that is the practice.</p>' +
       '<p class="reading">The moment you notice you have wandered, tap anywhere on the lower half of the screen, then return to the breath.</p>' +
       '<p class="reading"><strong>Tapping more is not worse. Noticing is the whole skill.</strong></p>' +
       '<p class="reading">To stop at any time, tap Stop at the top of the screen.</p>';
     foot = '<button class="primary" data-action="onb-try">Try it for 60 seconds</button>';
   } else {
-    body = '<h1 class="title">What time will you sit?</h1><input class="field" type="time" id="onb-time" value="' + esc(S.reminder) + '" style="width:150px">';
+    body = '<h1 class="title">What time will you practise?</h1><input class="field" type="time" id="onb-time" value="' + esc(S.reminder) + '" style="width:150px">';
     foot = '<button class="primary" data-action="onb-finish">Continue</button>';
   }
   return '<div class="onb"><div class="onb-top"><div class="progress">' + bars + "</div>" + skip + "</div>" +
@@ -1957,7 +1958,7 @@ function renderSit() {
     ? '<button class="outline" data-action="survey" style="margin-top:16px">Copy my results</button>' : "";
   return '<div class="sit">' +
     '<div class="secondary ink3 num" id="dateline">' + esc(dateLine()) + "</div>" +
-    '<h1 class="display">Sit</h1>' +
+    '<h1 class="display">' + posture(S.posture).title + "</h1>" +
     '<div class="middle"><button class="arc-btn" data-action="arc" aria-label="' + minutes + ' min">' + arcSvg(120, 1.5, "var(--line)") +
     '<span class="arc-num"><b>' + minutes + "</b><small>min</small></span></button>" + menu + "</div>" +
     '<div class="postures">' + POSTURES.map(function (p) {
@@ -1975,7 +1976,7 @@ function renderSit() {
     (left ? '<p class="caption">' + esc(daysLeftLine(left)) + "</p>" : "") +
     renderStrip(w, t) +
     '<button class="today-line" data-action="history-today"><span>' + esc(todayLine()) + "</span><span>›</span></button>" +
-    (S.interrupted ? '<p class="caption" style="padding-bottom:6px">That one got interrupted. It still counts as a sitting you started.</p>' : "") +
+    (S.interrupted ? '<p class="caption" style="padding-bottom:6px">That one got interrupted. It still counts as a session you started.</p>' : "") +
     '<div class="row secondary" style="align-items:center;padding:10px 0"><span class="ink2">' + esc(TXT.tapSound) + "</span>" +
     '<button class="switch' + (S.tapSound ? " on" : "") + '" data-action="toggle-sound" role="switch" aria-checked="' + S.tapSound + '" aria-label="' + esc(TXT.tapSound) + '"></button></div>' +
     results + "</div>";
@@ -1990,12 +1991,12 @@ function dateLine() {
 }
 setInterval(function () { var el = $("#dateline"); if (el) el.textContent = dateLine(); }, 20000);
 
-/* D6.6: "Today · 2 sittings · 1 unfinished". */
+/* D6.6, D7.4: "Today · 2 sessions · 1 unfinished". */
 function todayLine() {
   var t = today(), list = kept().filter(function (s) { return s.date === t; });
   var unfinished = list.filter(function (s) { return s.state === "incomplete"; }).length;
-  if (!list.length) return "Today · no sittings yet";
-  return "Today · " + (list.length === 1 ? "1 sitting" : list.length + " sittings") + (unfinished ? " · " + unfinished + " unfinished" : "");
+  if (!list.length) return "Today · no sessions yet";
+  return "Today · " + (list.length === 1 ? "1 session" : list.length + " sessions") + (unfinished ? " · " + unfinished + " unfinished" : "");
 }
 
 /* PRD §7.9's wording: "Two days left in the week. You set a goal of {n}." */
@@ -2009,8 +2010,8 @@ function renderChange(c) {
   var b = c.before, a = c.after, rows = "";
   function row(name, frac) { return '<div class="row secondary"><span class="ink2">' + name + '</span><span class="ink2 num">' + frac + "</span></div>"; }
   if (b.practiceDays !== a.practiceDays) rows += row("Showing up", a.practiceDays + " of " + S.goalDays + " days");
-  if (b.completed !== a.completed || b.started !== a.started) rows += row("Staying", a.completed + " of " + a.started + " sittings");
-  if (b.present !== a.present || b.completed !== a.completed) rows += row("Noticing", a.present + " of " + a.completed + " sittings");
+  if (b.completed !== a.completed || b.started !== a.started) rows += row("Staying", a.completed + " of " + a.started + " sessions");
+  if (b.present !== a.present || b.completed !== a.completed) rows += row("Noticing", a.present + " of " + a.completed + " sessions");
   return '<div class="change"><div class="ui num">Your week: ' + Score.score(b) + " → " + Score.score(a) + "</div>" + rows + "</div>";
 }
 
@@ -2020,7 +2021,7 @@ function renderStrip(w, t) {
   return '<div class="strip">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
     var d = Score.addDays(ws, i), practised = !!w.practiceDates[d];
     var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
-    var label = practised && met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no sitting";
+    var label = practised && met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no session";
     return '<i class="' + (practised ? (met ? "g" : "p") : d === t ? "today" : "") + '" role="img" aria-label="' + label + '"></i>';
   }).join("") + "</div>";
 }
@@ -2028,7 +2029,7 @@ function renderStrip(w, t) {
 /* Week (UX §7.5): the score with its three components and raw fractions, the 30-day grid, returns per sitting. */
 function renderWeek() {
   var t = today(), first = Score.addDays(t, -29);
-  if (!kept().some(function (s) { return s.date >= first; })) return '<div class="empty reading">Nothing here yet. It starts when you sit.</div>';
+  if (!kept().length) return '<div class="pad"><h1 class="display">Record</h1></div><div class="empty reading" style="min-height:50vh">Nothing here yet. It starts when you practise.</div>';
   var w = thisWeek(), sc = Score.score(w);
   var goal = Math.max(w.goalDays, 1);
   var adherence = Math.min(w.practiceDays, goal) / goal;           // display only; never an input to the score
@@ -2046,23 +2047,26 @@ function renderWeek() {
     var wk = cache[ws] || (cache[ws] = Score.week(S.sessions, ws, S.goalDays));
     var practised = !!wk.practiceDates[d], met = practised && wk.practiceDays >= S.goalDays;
     var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
-    var label = met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no sitting";
+    var label = met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no session";
     return '<div class="' + (met ? "g" : practised ? "p" : "") + '" role="img" aria-label="' + label + '"></div>';
   }).join("");
-  return '<div class="pad">' +
+  return '<div class="pad"><h1 class="display" style="margin-bottom:24px">Record</h1>' +
     '<div class="score" id="score" data-target="' + sc + '">' + sc + "</div>" +
     '<div class="secondary ink2" style="margin-top:6px">This week</div>' +
     '<div class="components">' +
     comp("Showing up", w.practiceDays + " of " + w.goalDays + " days", adherence, adherence * 50, 50) +
-    comp("Staying", w.completed + " of " + w.started + " sittings", completion, completion * 30, 30) +
-    comp("Noticing", w.present + " of " + w.completed + " sittings", presence, presence * 20, 20) +
+    comp("Staying", w.completed + " of " + w.started + " sessions", completion, completion * 30, 30) +
+    comp("Noticing", w.present + " of " + w.completed + " sessions", presence, presence * 20, 20) +
     "</div>" +
+    '<div class="hairline" style="margin:32px 0"></div>' + renderWhatYouMet(t) +
     '<div class="hairline" style="margin:32px 0"></div>' +
     '<div class="label">Days practised in the last 30</div><div class="grid30">' + cells + "</div>" +
     '<div class="hairline" style="margin:32px 0"></div>' +
-    '<div class="label">Returns per sitting</div>' + returnsChart(first, t) +
+    '<div class="label">Returns per session</div>' + returnsChart(first, t) +
     '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p>' +
-    '<div class="hairline" style="margin:32px 0"></div>' + renderWhatYouMet(t) + "</div>";
+    '<div class="hairline" style="margin:32px 0"></div>' + renderMonth(t) +
+    '<div class="hairline" style="margin:32px 0 8px"></div>' +
+    '<button class="today-line" data-action="history-all" style="font-size:16px;color:var(--ink)"><span>History</span><span>›</span></button></div>';
 }
 
 /* You (D6.9): the month x hour map, which replaces the C8 year grid and hour view, and the way into History. */
@@ -2101,8 +2105,8 @@ function monthMap(m, t) {
            dayCount: m === firstOfMonth(t) ? Number(t.slice(8)) : days.length, usual: usual };
 }
 
-function renderYou() {
-  var t = today(), m = UI.month || firstOfMonth(t), map = monthMap(m, t), n = map.days.length;
+function renderMonth(t) {
+  var m = UI.month || firstOfMonth(t), map = monthMap(m, t), n = map.days.length;
   function two(h) { return String(h).padStart(2, "0"); }
   function hm(ms) { return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
   var grid = '<div class="map" style="grid-template-columns:22px repeat(' + n + ',1fr)">';
@@ -2117,18 +2121,50 @@ function renderYou() {
   grid += "<span></span>" + map.days.map(function (d) {
     var day = Number(d.slice(8)), date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
     var sittings = map.inMonth.filter(function (s) { return s.date === d; }).sort(function (a, b) { return a.startedAt - b.startedAt; });
-    var label = sittings.length ? date + ": " + sittings.map(function (s) { return "sat " + hm(s.startedAt) + " to " + hm(s.endedAt || s.startedAt); }).join(", ") : date + ": no sitting";
+    var label = sittings.length ? date + ": " + sittings.map(function (s) { return "practised " + hm(s.startedAt) + " to " + hm(s.endedAt || s.startedAt); }).join(", ") : date + ": no session";
     return '<span class="d" role="img" aria-label="' + esc(label) + '">' + ([1, 8, 15, 22, 29].indexOf(day) >= 0 ? day : "") + "</span>";
   }).join("") + "</div>";
   var title = Score.parseDay(m).toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  return '<div class="pad"><h1 class="display">You</h1>' +
-    '<div class="month-head"><button data-action="month-prev"' + (monthShown(addMonths(m, -1), t) ? "" : " disabled") + ' aria-label="‹">‹</button>' +
+  return '<div class="month-head" style="margin-top:0"><button data-action="month-prev"' + (monthShown(addMonths(m, -1), t) ? "" : " disabled") + ' aria-label="‹">‹</button>' +
     '<span class="ui">' + esc(title) + '</span><button data-action="month-next"' + (m < firstOfMonth(t) ? "" : " disabled") + ' aria-label="›">›</button></div>' +
     grid +
-    '<p class="secondary ink2" style="margin-top:16px">You sat on ' + map.satDays + " of " + map.dayCount + " days this month.</p>" +
-    (map.usual === null ? "" : '<p class="secondary ink2" style="margin-top:4px">You most often sit between ' + two(map.usual) + ":00 and " + two(map.usual + 1) + ":00.</p>") +
-    '<div class="hairline" style="margin:32px 0 8px"></div>' +
-    '<button class="today-line" data-action="history-all" style="font-size:16px;color:var(--ink)"><span>History</span><span>›</span></button></div>';
+    '<p class="secondary ink2" style="margin-top:16px">You practised on ' + map.satDays + " of " + map.dayCount + " days this month.</p>" +
+    (map.usual === null ? "" : '<p class="secondary ink2" style="margin-top:4px">You most often practise between ' + two(map.usual) + ":00 and " + two(map.usual + 1) + ":00.</p>");
+}
+
+/* You (D7.3): the About you answers, the weekly goal and the session length. Nothing else; there is no account here.
+   Every field saves as it changes. A new goal waits for next week (D3.4). */
+function renderYou() {
+  var a = S.about, chosen = S.pendingGoal || S.goalDays, custom = LENGTHS.indexOf(S.goalMinutes) < 0;
+  function chips(field, list) {
+    return '<div class="chips">' + list.map(function (o) {
+      return '<button class="' + (a[field] === o ? "on" : "") + '" data-action="you-pick" data-f="' + field + '" data-v="' + esc(o) + '">' + esc(o) + "</button>";
+    }).join("") + "</div>";
+  }
+  return '<div class="pad"><h1 class="display">You</h1>' +
+    '<h2 class="title" style="margin-top:32px">About you</h2>' +
+    '<div class="onb-body top" style="padding:12px 0 0">' +
+    '<p class="secondary ink2" style="line-height:1.45">All optional. None of it is shown to anyone else, and none of it changes your score.</p>' +
+    '<div><div class="label">Name others see</div><input class="field" id="you-name" autocomplete="off" maxlength="40" value="' + esc(a.name || "") + '">' +
+    '<p class="caption" style="margin-top:6px">Leagues show no names unless you choose one.</p></div>' +
+    '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
+    '<div><div class="label">Gender</div>' + chips("gender", GENDERS) +
+    (a.gender === SELF_DESCRIBE ? '<input class="field" id="you-self" autocomplete="off" maxlength="60" style="margin-top:8px" value="' + esc(a.genderSelf || "") + '">' : "") + "</div>" +
+    '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
+    '<label class="check"><input type="checkbox" id="you-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label></div>' +
+    '<div class="hairline" style="margin:32px 0"></div>' +
+    '<div class="label">How many days a week will you practise?</div><div class="seg">' + GOAL_DAYS.map(function (n) {
+      return '<button class="' + (chosen === n ? "on" : "") + '" data-action="you-goal" data-v="' + n + '">' + n + "</button>";
+    }).join("") + "</div>" + (S.pendingGoal ? '<p class="caption" style="margin-top:8px">From next week.</p>' : "") +
+    '<div class="label" style="margin-top:24px">How long is one session?</div><div class="seg">' + LENGTHS.map(function (n) {
+      return '<button class="' + (!custom && S.goalMinutes === n ? "on" : "") + '" data-action="you-length" data-v="' + n + '">' + n + "</button>";
+    }).join("") + '<button class="' + (custom ? "on" : "") + '" data-action="custom-sheet" data-scope="goal">Custom</button></div>' +
+    '<p class="caption" style="margin-top:8px">minutes</p></div>';
+}
+
+/* D3.4: a new weekly goal applies from the next Monday, so no week is scored against a goal not held during it. */
+function applyPendingGoal() {
+  if (S.pendingGoal && S.pendingFrom && today() >= S.pendingFrom) { S.goalDays = S.pendingGoal; S.pendingGoal = null; S.pendingFrom = null; save(); }
 }
 
 /* History (D6.6): sittings by day, newest first. Discarded sittings never appear. */
@@ -2168,7 +2204,7 @@ function openCheckInDetail(s) {
     (answered.length ? answered.map(function (h) {
       return '<div style="margin-top:16px"><div class="ui">' + h.name + '</div><p class="secondary ink2" style="margin-top:2px">' + esc(h.q) + "</p>" +
         '<p class="secondary" style="margin-top:2px">' + ANSWERS[s.checkIn[h.key]] + "</p></div>";
-    }).join("") : '<p class="secondary ink2" style="margin-top:16px">No check-in for this sitting</p>'));
+    }).join("") : '<p class="secondary ink2" style="margin-top:16px">No check-in for this session</p>'));
 }
 
 /* What you met (D6.8): a mirror, not a target. Averages 0-3 and one neutral word against the previous period. */
@@ -2374,7 +2410,7 @@ function bindSessionGestures() {
     tapClick();                                          // no visual response at all
     if (SES.taps.length === 1) writeCheckpoint();        // presence rests on the first tap (D4.4)
   });
-  // C7: one tap on the top 15% shows End, Discard and Keep sitting for four seconds.
+  // C7: one tap on the top 15% shows End, Discard and Keep going for four seconds.
   endZone.addEventListener("pointerup", function (e) { e.preventDefault(); revealExitPanel(); });
   // The session layer suppresses clicks, so the panel acts on pointerup.
   panel.addEventListener("pointerup", function (e) {
@@ -2396,11 +2432,11 @@ function revealExitPanel() {
     S.discards.push({ at: Date.now(), week: week, capped: true });   // so we can see whether the cap is ever reached
     SES.cappedRecorded = true; save();
   }
-  panel.innerHTML = '<div class="t">End this sitting?</div>' +
-    '<button data-exit="end">End<small>keeps it as an unfinished sitting</small></button>' +
+  panel.innerHTML = '<div class="t">End this session?</div>' +
+    '<button data-exit="end">End<small>keeps it as an unfinished session</small></button>' +
     (SES.canDiscard ? '<button data-exit="discard">Discard<small>removes it completely</small></button>'
-      : "<p>You have used your three discards this week. Ending now will save this as an unfinished sitting.</p>") +
-    '<button data-exit="keep">Keep sitting</button>';
+      : "<p>You have used your three discards this week. Ending now will save this as an unfinished session.</p>") +
+    '<button data-exit="keep">Keep going</button>';
   panel.classList.add("on"); panel.setAttribute("aria-hidden", "false");
   clearTimeout(SES.panelTimer);
   SES.panelTimer = setTimeout(hideExitPanel, EXIT_PANEL_MS);
@@ -2506,7 +2542,7 @@ var CI = null;
 function openCheckIn(sessionId) {
   CI = { id: sessionId, index: 0, answers: {}, done: false };
   openLayer('<div class="ci">' +
-    '<div class="row"><h1 class="title">How was the sitting?</h1><button class="secondary ink3" data-action="ci-skip" style="flex:none">Skip the rest</button></div>' +
+    '<div class="row"><h1 class="title">How was the session?</h1><button class="secondary ink3" data-action="ci-skip" style="flex:none">Skip the rest</button></div>' +
     '<p class="caption" style="margin-top:4px">No right answers. This never affects your ranking.</p>' +
     '<div class="ci-viewport" id="ciViewport"><div class="ci-pages" id="ciPages">' +
     HINDRANCES.map(function (h) {
@@ -2591,7 +2627,7 @@ function resultsText() {
     "tester " + S.tester + " · web 1 · " + device + " · wake lock " + ("wakeLock" in navigator ? "yes" : "no") + " · tap sound " + (S.tapSound ? "on" : "off"),
     "goal " + S.goalDays + " days a week, " + S.goalMinutes + " min · experience: " + (S.experience === null ? "-" : EXPERIENCE[S.experience]),
     "",
-    "Sittings: " + sessions.length + " (" + completed + " completed)"
+    "Sessions: " + sessions.length + " (" + completed + " completed)"
   ];
   sessions.forEach(function (s, n) {
     lines.push((n + 1) + ". " + time(s.startedAt) + " · " + (s.posture || "sitting") + " · planned " + Math.round(s.plannedSeconds / 60) + " min · sat " + clock(s.actualSeconds * 1000) +
@@ -2669,9 +2705,10 @@ var actions = {
   "onb-days": function (el) { S.goalDays = Number(el.dataset.v); save(); render(); },
   "onb-len": function (el) { S.goalMinutes = Number(el.dataset.v); UI.customOpen = false; UI.customError = false; save(); render(); },
   "onb-custom": function () { UI.customOpen = true; UI.customError = false; UI.customText = LENGTHS.indexOf(S.goalMinutes) < 0 ? String(S.goalMinutes) : ""; render(); var f = $("#onb-custom"); if (f) f.focus(); },
-  "custom-sheet": function () {
+  "custom-sheet": function (el) {
+    UI.customScope = el && el.dataset.scope === "goal" ? "goal" : "session";
     UI.menuOpen = false; render();
-    openSheet('<div class="row" style="justify-content:flex-start;align-items:center;gap:12px"><input class="field" id="sit-custom" inputmode="numeric" maxlength="3" style="width:96px" value="' + (UI.sittingMinutes || S.goalMinutes) + '"><span class="secondary ink2">minutes</span></div>' +
+    openSheet('<div class="row" style="justify-content:flex-start;align-items:center;gap:12px"><input class="field" id="sit-custom" inputmode="numeric" maxlength="3" style="width:96px" value="' + (UI.customScope === "goal" ? S.goalMinutes : UI.sittingMinutes || S.goalMinutes) + '"><span class="secondary ink2">minutes</span></div>' +
       '<p class="caption" id="sit-custom-error" style="margin-top:8px" hidden>Enter whole minutes from 1 to 180.</p>' +
       '<button class="primary" data-action="custom-set" style="margin-top:20px">Continue</button>');
     var f = $("#sit-custom"); if (f) f.focus();
@@ -2679,8 +2716,27 @@ var actions = {
   "custom-set": function () {
     var n = customMinutes($("#sit-custom").value);
     if (n === null) { $("#sit-custom-error").hidden = false; return; }
-    UI.sittingMinutes = n; closeSheet(); render();
+    if (UI.customScope === "goal") { S.goalMinutes = n; save(); } else UI.sittingMinutes = n;
+    closeSheet(); render();
   },
+  "you-pick": function (el) {
+    var f = el.dataset.f, v = el.dataset.v;
+    if (f === "age" && v === UNDER_18) {
+      S.about = { name: "", age: UNDER_18, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null };
+    } else {
+      if (S.about.age === UNDER_18 && f !== "age") return;   // nothing else is kept for someone under 18
+      S.about[f] = S.about[f] === v ? null : v;
+      if (f === "gender" && S.about.gender !== SELF_DESCRIBE) S.about.genderSelf = "";
+    }
+    save(); var y = window.scrollY; render(); window.scrollTo(0, y);
+  },
+  "you-goal": function (el) {
+    var n = Number(el.dataset.v);
+    if (n === S.goalDays) { S.pendingGoal = null; S.pendingFrom = null; }
+    else { S.pendingGoal = n; S.pendingFrom = Score.addDays(Score.weekStart(today()), 7); }
+    save(); var y = window.scrollY; render(); window.scrollTo(0, y);
+  },
+  "you-length": function (el) { S.goalMinutes = Number(el.dataset.v); save(); var y = window.scrollY; render(); window.scrollTo(0, y); },
   "posture": function (el) { S.posture = el.dataset.v; save(); render(); },
   "history-today": function () { openHistory({ day: today() }); },
   "history-all": function () { openHistory(null); },
@@ -2718,6 +2774,14 @@ document.addEventListener("click", function (e) {
 });
 document.addEventListener("input", function (e) {
   if (e.target.id === "survey-notes" && S.survey) { S.survey.notes = e.target.value; save(); }
+  if (e.target.id === "you-name" && S.about.age !== UNDER_18) { S.about.name = e.target.value.slice(0, 40); save(); }
+  if (e.target.id === "you-self") { S.about.genderSelf = e.target.value.slice(0, 60); save(); }
+});
+document.addEventListener("change", function (e) {
+  if (e.target.id === "you-consent") {
+    if (S.about.age === UNDER_18) { e.target.checked = false; return; }   // never set for someone under 18 (D5.1)
+    S.about.consent = e.target.checked; S.about.consentUpdatedAt = new Date().toISOString(); save();
+  }
 });
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -2750,6 +2814,8 @@ if (params.get("selftest") === "1") {
   $("#app").innerHTML = '<pre class="selftest">' + esc(result.text) + "</pre>";
 } else {
   S = loadState();
+  applyPendingGoal();
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && S && !SES) { var before = S.goalDays; applyPendingGoal(); if (S.goalDays !== before) render(); } });
   recoverCheckpoint();
   if (S.step === 2 && !UI.draftAbout) UI.draftAbout = Object.assign({}, S.about);
   render();
