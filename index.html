@@ -122,9 +122,23 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .bar{height:6px;background:var(--bluewash);position:relative;min-width:32px}
 .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--blue2)}
 .grid30{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
-.grid30 div{aspect-ratio:1;background:var(--bluewash)}
-.grid30 div.p{background:var(--blue2)}
-.grid30 div.g{background:var(--gold);background-clip:content-box;border:1.5px solid var(--gold);padding:1.5px}
+.grid30 div{aspect-ratio:1;background:var(--bluewash);cursor:pointer}
+/* D8.2: shaded by finished sessions, never by minutes; a met-goal week keeps a gold ring and no solid gold. */
+.s1{background:color-mix(in srgb,var(--blue2) 35%,transparent)!important}
+.s2{background:color-mix(in srgb,var(--blue2) 65%,transparent)!important}
+.s3{background:var(--blue2)!important}
+.ring{box-shadow:inset 0 0 0 1.5px var(--gold)!important}
+.legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--ink3)}
+.legend i{width:10px;height:10px;display:inline-block}
+.comp{margin-top:18px}
+.comp-line{display:grid;grid-template-columns:92px 1fr;gap:12px;font-size:14px;line-height:1.4}
+.comp .bar{margin-top:8px}
+.you-head{display:flex;gap:16px;align-items:center;margin-top:8px}
+.avatar{width:56px;height:56px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line);font-family:var(--serif);font-size:22px}
+.avatar.anon{box-shadow:none;border-radius:0}
+.you-row{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:48px;border-bottom:1px solid var(--line);font-size:16px;font-weight:500;text-align:left}
+.you-row span:last-child{color:var(--ink2);font-weight:400;font-variant-numeric:tabular-nums}
+.you-row:disabled{opacity:1;cursor:default}
 .chart text{font-size:10px;fill:var(--ink3);font-family:var(--sans)}
 
 /* Layers */
@@ -157,8 +171,6 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .strip{display:flex;gap:8px;padding:4px 0 10px}
 .strip i{width:20px;height:20px;background:var(--bluewash);display:block}
 .strip i.today{box-shadow:inset 0 0 0 1px var(--ink3)}
-.strip i.p{background:var(--blue2);box-shadow:none}
-.strip i.g{background:var(--gold);background-clip:content-box;border:1.5px solid var(--gold);padding:1.5px;box-shadow:none}
 .change{padding-top:14px}
 .change .row{padding-top:4px}
 
@@ -1781,7 +1793,7 @@ function freshState() {
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
     experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
-    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null
+    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now()
   };
 }
 function testerCode() {
@@ -2005,24 +2017,52 @@ function daysLeftLine(days) {
   return word + (days === 1 ? " day left in the week." : " days left in the week.") + " You set a goal of " + S.goalDays + ".";
 }
 
-/* C6: "Your week: 60 → 73", with the component rows that moved, in the Week screen's own words. */
+/* D8.1: the weekly score in plain sentences, shared by Record and the Practice screen, singular where it applies. */
+function showingUpLine(w) {
+  var d = w.practiceDays, g = w.goalDays;
+  if (d > g) return "You practised on " + d + " days. You planned " + g + ".";   // neutral: the score caps at the goal
+  return "You practised on " + d + " of the " + g + (g === 1 ? " day" : " days") + " you planned.";
+}
+function finishingLine(w) { return "You finished " + w.completed + " of the " + w.started + (w.started === 1 ? " session" : " sessions") + " you started."; }
+function noticingLine(w) {
+  if (!w.completed) return null;   // never "0 of 0"
+  return w.present + " of your " + w.completed + " finished " + (w.completed === 1 ? "session" : "sessions") + " had at least one return.";
+}
+var SCORE_EXPLANATION = [
+  "Your score is out of 100, and it starts again every Monday.",
+  "Showing up counts for half — practising on the days you planned.",
+  "Finishing counts for 30 — completing the sessions you begin.",
+  "Noticing counts for 20 — marking at least one return in a session.",
+  "How long you practise never changes your score."
+];
+function finishedByDay() {
+  var n = {};
+  kept().forEach(function (s) { if (s.state === "completed") n[s.date] = (n[s.date] || 0) + 1; });
+  return n;
+}
+/* D8.2: "{date}, {n} sessions" / "{date}, no session", with ", goal met" where it applies. */
+function dayLabel(d, n, met) {
+  var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  return date + (n === 0 ? ", no session" : n === 1 ? ", 1 session" : ", " + n + " sessions") + (met ? ", goal met" : "");
+}
+
+/* C6: "Your week: 60 → 73", with the components that moved, in Record's own sentences (D8.1). */
 function renderChange(c) {
   var b = c.before, a = c.after, rows = "";
-  function row(name, frac) { return '<div class="row secondary"><span class="ink2">' + name + '</span><span class="ink2 num">' + frac + "</span></div>"; }
-  if (b.practiceDays !== a.practiceDays) rows += row("Showing up", a.practiceDays + " of " + S.goalDays + " days");
-  if (b.completed !== a.completed || b.started !== a.started) rows += row("Staying", a.completed + " of " + a.started + " sessions");
-  if (b.present !== a.present || b.completed !== a.completed) rows += row("Noticing", a.present + " of " + a.completed + " sessions");
+  function row(name, sentence) { return '<div class="comp-line" style="margin-top:6px"><span>' + name + '</span><span class="ink2">' + esc(sentence) + "</span></div>"; }
+  if (b.practiceDays !== a.practiceDays) rows += row("Showing up", showingUpLine(a));
+  if (b.completed !== a.completed || b.started !== a.started) rows += row("Finishing", finishingLine(a));
+  if ((b.present !== a.present || b.completed !== a.completed) && noticingLine(a)) rows += row("Noticing", noticingLine(a));
   return '<div class="change"><div class="ui num">Your week: ' + Score.score(b) + " → " + Score.score(a) + "</div>" + rows + "</div>";
 }
 
 /* C6: this week's seven days, Monday first. Today fills when a sitting is completed; a met goal wears the gold ring. */
 function renderStrip(w, t) {
-  var ws = Score.weekStart(t), met = w.practiceDays >= S.goalDays;
+  var ws = Score.weekStart(t), met = w.practiceDays >= S.goalDays, finished = finishedByDay();
   return '<div class="strip">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
-    var d = Score.addDays(ws, i), practised = !!w.practiceDates[d];
-    var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
-    var label = practised && met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no session";
-    return '<i class="' + (practised ? (met ? "g" : "p") : d === t ? "today" : "") + '" role="img" aria-label="' + label + '"></i>';
+    var d = Score.addDays(ws, i), n = finished[d] || 0, ring = met && !!w.practiceDates[d];
+    var cls = (n ? "s" + Math.min(n, 3) : d === t ? "today" : "") + (ring ? " ring" : "");
+    return '<i class="' + cls + '" role="img" aria-label="' + dayLabel(d, n, ring) + '"></i>';
   }).join("") + "</div>";
 }
 
@@ -2035,32 +2075,31 @@ function renderWeek() {
   var adherence = Math.min(w.practiceDays, goal) / goal;           // display only; never an input to the score
   var completion = w.started ? w.completed / w.started : 0;
   var presence = w.completed ? w.present / w.completed : 0;
-  function pts(v) { var r = Math.round(v * 10) / 10; return String(r); }
-  function comp(name, frac, fill, points, max) {
-    return "<span>" + name + '</span><span class="ink2 num">' + frac + "</span>" +
-      '<div class="bar" aria-hidden="true"><i style="width:' + (Math.min(Math.max(fill, 0), 1) * 100).toFixed(1) + '%"></i></div>' +
-      '<span class="ink2 num" style="text-align:right">' + pts(points) + " / " + max + "</span>";
+  function comp(name, sentence, fill) {
+    return '<div class="comp"><div class="comp-line"><span>' + name + '</span><span class="ink2">' + esc(sentence) + "</span></div>" +
+      '<div class="bar" aria-hidden="true"><i style="width:' + (Math.min(Math.max(fill, 0), 1) * 100).toFixed(1) + '%"></i></div></div>';
   }
-  var cache = {};
+  // With nothing started this week there is no number, only one line; with nothing finished, no Noticing row (D8.1).
+  var scoreBlock = !w.started
+    ? '<p class="reading ink2">Your week starts when you practise.</p>'
+    : '<div class="score" id="score" data-target="' + sc + '">' + sc + "</div>" +
+      '<div class="secondary ink2" style="margin-top:6px">out of 100 this week</div>' +
+      comp("Showing up", showingUpLine(w), adherence) + comp("Finishing", finishingLine(w), completion) +
+      (noticingLine(w) ? comp("Noticing", noticingLine(w), presence) : "");
+  var cache = {}, finished = finishedByDay();
   var cells = Array.from({ length: 30 }, function (_, i) {
     var d = Score.addDays(first, i), ws = Score.weekStart(d);
     var wk = cache[ws] || (cache[ws] = Score.week(S.sessions, ws, S.goalDays));
-    var practised = !!wk.practiceDates[d], met = practised && wk.practiceDays >= S.goalDays;
-    var date = Score.parseDay(d).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
-    var label = met ? date + ", practised, goal met" : practised ? date + ", practised" : date + ", no session";
-    return '<div class="' + (met ? "g" : practised ? "p" : "") + '" role="img" aria-label="' + label + '"></div>';
+    var n = finished[d] || 0, ring = !!wk.practiceDates[d] && wk.practiceDays >= S.goalDays;
+    return '<div class="' + (n ? "s" + Math.min(n, 3) : "") + (ring ? " ring" : "") + '" role="button" data-action="grid-day" data-d="' + d + '" aria-label="' + dayLabel(d, n, ring) + '"></div>';
   }).join("");
+  var legend = '<div class="legend" aria-label="1 · 2 · 3+ sessions"><i class="s1"></i>1 · <i class="s2"></i>2 · <i class="s3"></i>3+ sessions</div>';
   return '<div class="pad"><h1 class="display" style="margin-bottom:24px">Record</h1>' +
-    '<div class="score" id="score" data-target="' + sc + '">' + sc + "</div>" +
-    '<div class="secondary ink2" style="margin-top:6px">This week</div>' +
-    '<div class="components">' +
-    comp("Showing up", w.practiceDays + " of " + w.goalDays + " days", adherence, adherence * 50, 50) +
-    comp("Staying", w.completed + " of " + w.started + " sessions", completion, completion * 30, 30) +
-    comp("Noticing", w.present + " of " + w.completed + " sessions", presence, presence * 20, 20) +
-    "</div>" +
+    scoreBlock +
+    '<button class="textlink" data-action="score-how" style="color:var(--ink3);margin-top:12px">How is this worked out?</button>' +
     '<div class="hairline" style="margin:32px 0"></div>' + renderWhatYouMet(t) +
     '<div class="hairline" style="margin:32px 0"></div>' +
-    '<div class="label">Days practised in the last 30</div><div class="grid30">' + cells + "</div>" +
+    '<div class="label">Days practised in the last 30</div><div class="grid30">' + cells + "</div>" + legend +
     '<div class="hairline" style="margin:32px 0"></div>' +
     '<div class="label">Returns per session</div>' + returnsChart(first, t) +
     '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p>' +
@@ -2132,34 +2171,85 @@ function renderMonth(t) {
     (map.usual === null ? "" : '<p class="secondary ink2" style="margin-top:4px">You most often practise between ' + two(map.usual) + ":00 and " + two(map.usual + 1) + ":00.</p>");
 }
 
-/* You (D7.3): the About you answers, the weekly goal and the session length. Nothing else; there is no account here.
-   Every field saves as it changes. A new goal waits for next week (D3.4). */
+/* You (D8.3): the signed-in layout, never a registration form. There is no account on this page, so the sign-in line
+   says so, and there is no Sign out or Delete. No lifetime totals of anything. */
 function renderYou() {
-  var a = S.about, chosen = S.pendingGoal || S.goalDays, custom = LENGTHS.indexOf(S.goalMinutes) < 0;
+  var a = S.about, name = (a.name || "").trim(), minor = a.age === UNDER_18;
+  var initials = name.split(/\s+/).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join("");
+  var since = new Date(S.createdAt || Date.now()).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  function row(label, value, action, disabled) {
+    return '<button class="you-row" ' + (action ? 'data-action="' + action + '"' : "") + (disabled ? " disabled" : "") + "><span>" + label + "</span><span>" + (value === null ? "›" : esc(value)) + "</span></button>";
+  }
+  return '<div class="pad"><h1 class="display">You</h1>' +
+    '<div class="you-head">' + (name ? '<div class="avatar" aria-hidden="true">' + esc(initials) + "</div>" : '<div class="avatar anon" aria-hidden="true">' + arcSvg(56, 1.5, "var(--line)") + "</div>") +
+    '<div><div class="title">' + (name ? esc(name) : "Anonymous practitioner") + "</div>" +
+    '<div class="secondary ink2" style="margin-top:2px">Test version — everything stays on this phone.</div>' +
+    '<div class="secondary ink3" style="margin-top:2px">Member since ' + esc(since) + "</div></div></div>" +
+    '<div class="label" style="margin-top:32px">Your practice</div>' +
+    row("Days a week", String(S.goalDays), "you-sheet-goal") +
+    row("Session length", S.goalMinutes + " min", "you-sheet-length") +
+    row("Usual posture", posture(S.posture).label, "you-sheet-posture") +
+    row("Reminder", "Off", null, true) +
+    '<div style="margin-top:24px"></div>' + row("About you", null, "you-sheet-about") +
+    '<div class="label" style="margin-top:24px">Privacy</div>' +
+    row("Use my answers in research", a.consent ? "On" : "Off", "you-research", minor) +
+    row("Export my data", null, "you-export") + "</div>";
+}
+
+/* The sheets behind the You rows. They re-draw in place when something inside them changes. */
+function youSheet(kind) {
+  UI.youSheet = kind;
+  var a = S.about, chosen = S.pendingGoal || S.goalDays, custom = LENGTHS.indexOf(S.goalMinutes) < 0, html = "";
   function chips(field, list) {
     return '<div class="chips">' + list.map(function (o) {
       return '<button class="' + (a[field] === o ? "on" : "") + '" data-action="you-pick" data-f="' + field + '" data-v="' + esc(o) + '">' + esc(o) + "</button>";
     }).join("") + "</div>";
   }
-  return '<div class="pad"><h1 class="display">You</h1>' +
-    '<h2 class="title" style="margin-top:32px">About you</h2>' +
-    '<div class="onb-body top" style="padding:12px 0 0">' +
-    '<p class="secondary ink2" style="line-height:1.45">All optional. None of it is shown to anyone else, and none of it changes your score.</p>' +
-    '<div><div class="label">Name others see</div><input class="field" id="you-name" autocomplete="off" maxlength="40" value="' + esc(a.name || "") + '">' +
-    '<p class="caption" style="margin-top:6px">Leagues show no names unless you choose one.</p></div>' +
-    '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
-    '<div><div class="label">Gender</div>' + chips("gender", GENDERS) +
-    (a.gender === SELF_DESCRIBE ? '<input class="field" id="you-self" autocomplete="off" maxlength="60" style="margin-top:8px" value="' + esc(a.genderSelf || "") + '">' : "") + "</div>" +
-    '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
-    '<label class="check"><input type="checkbox" id="you-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label></div>' +
-    '<div class="hairline" style="margin:32px 0"></div>' +
-    '<div class="label">How many days a week will you practise?</div><div class="seg">' + GOAL_DAYS.map(function (n) {
+  if (kind === "goal") {
+    html = '<h2 class="title">How many days a week will you practise?</h2><div class="seg" style="margin-top:16px">' + GOAL_DAYS.map(function (n) {
       return '<button class="' + (chosen === n ? "on" : "") + '" data-action="you-goal" data-v="' + n + '">' + n + "</button>";
-    }).join("") + "</div>" + (S.pendingGoal ? '<p class="caption" style="margin-top:8px">From next week.</p>' : "") +
-    '<div class="label" style="margin-top:24px">How long is one session?</div><div class="seg">' + LENGTHS.map(function (n) {
+    }).join("") + "</div>" + (S.pendingGoal ? '<p class="caption" style="margin-top:8px">From next week.</p>' : "");
+  } else if (kind === "length") {
+    html = '<h2 class="title">How long is one session?</h2><div class="seg" style="margin-top:16px">' + LENGTHS.map(function (n) {
       return '<button class="' + (!custom && S.goalMinutes === n ? "on" : "") + '" data-action="you-length" data-v="' + n + '">' + n + "</button>";
-    }).join("") + '<button class="' + (custom ? "on" : "") + '" data-action="custom-sheet" data-scope="goal">Custom</button></div>' +
-    '<p class="caption" style="margin-top:8px">minutes</p></div>';
+    }).join("") + '<button class="' + (custom ? "on" : "") + '" data-action="custom-sheet" data-scope="goal">Custom</button></div><p class="caption" style="margin-top:8px">minutes</p>';
+  } else if (kind === "posture") {
+    html = '<h2 class="title">Usual posture</h2><div class="postures" style="justify-content:flex-start;margin:16px 0 0">' + POSTURES.map(function (p) {
+      return '<button class="' + (S.posture === p.key ? "on" : "") + '" data-action="you-posture" data-v="' + p.key + '">' + p.label + "</button>";
+    }).join("") + "</div>";
+  } else {
+    html = '<h2 class="title">About you</h2><div class="onb-body top" style="padding:12px 0 0">' +
+      '<p class="secondary ink2" style="line-height:1.45">All optional. None of it is shown to anyone else, and none of it changes your score.</p>' +
+      '<div><div class="label">Name others see</div><input class="field" id="you-name" autocomplete="off" maxlength="40" value="' + esc(a.name || "") + '">' +
+      '<p class="caption" style="margin-top:6px">Leagues show no names unless you choose one.</p></div>' +
+      '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
+      '<div><div class="label">Gender</div>' + chips("gender", GENDERS) +
+      (a.gender === SELF_DESCRIBE ? '<input class="field" id="you-self" autocomplete="off" maxlength="60" style="margin-top:8px" value="' + esc(a.genderSelf || "") + '">' : "") + "</div>" +
+      '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
+      '<label class="check"><input type="checkbox" id="you-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label></div>';
+  }
+  var open = !$("#sheet").hidden, sheet = $("#sheet .sheet"), top = sheet ? sheet.scrollTop : 0;
+  openSheet(html);
+  if (open) { var again = $("#sheet .sheet"); if (again) { again.style.animation = "none"; again.scrollTop = top; } }
+}
+
+/* Export my data (D8.3): everything this page holds, as a JSON file. Discarded sessions are left out, as promised. */
+function exportData() {
+  var data = {
+    exported_at: new Date().toISOString(), version: "web 1",
+    settings: { goal_days: S.goalDays, pending_goal_days: S.pendingGoal, session_minutes: S.goalMinutes, usual_posture: S.posture, tap_sound: S.tapSound },
+    about_you: S.about, experience: S.experience === null ? null : EXPERIENCE[S.experience],
+    sessions: kept().map(function (s) {
+      return { id: s.id, started_at: new Date(s.startedAt).toISOString(), ended_at: s.endedAt ? new Date(s.endedAt).toISOString() : null,
+               local_date: s.date, planned_seconds: s.plannedSeconds, actual_seconds: s.actualSeconds, state: s.state,
+               posture: s.posture || "sitting", tap_offsets_ms: s.taps, check_in: s.checkIn || null };
+    }),
+    phase0: S.survey
+  };
+  var url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  var link = document.createElement("a"); link.href = url; link.download = "nimitta-export.json";
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
 }
 
 /* D3.4: a new weekly goal applies from the next Monday, so no week is scored against a goal not held during it. */
@@ -2669,7 +2759,7 @@ var actions = {
   "begin": function () { begin(UI.sittingMinutes || S.goalMinutes, false); },
   "toggle-sound": function () { S.tapSound = !S.tapSound; save(); render(); },
   "why": function () { openSheet(WHY); },
-  "close-sheet": function () { closeSheet(); if (!S.warned && S.onboarded) { S.warned = true; save(); } },
+  "close-sheet": function () { closeSheet(); UI.youSheet = null; if (!S.warned && S.onboarded) { S.warned = true; save(); } },
 
   "onb-next": function () {
     if (S.step === 4 && UI.customOpen) {
@@ -2719,6 +2809,18 @@ var actions = {
     if (UI.customScope === "goal") { S.goalMinutes = n; save(); } else UI.sittingMinutes = n;
     closeSheet(); render();
   },
+  "score-how": function () { openSheet(SCORE_EXPLANATION.map(function (l, i) { return '<p class="reading"' + (i ? ' style="margin-top:12px"' : "") + ">" + esc(l) + "</p>"; }).join("")); },
+  "grid-day": function (el) { openHistory({ day: el.dataset.d }); },
+  "you-sheet-goal": function () { youSheet("goal"); },
+  "you-sheet-length": function () { youSheet("length"); },
+  "you-sheet-posture": function () { youSheet("posture"); },
+  "you-sheet-about": function () { youSheet("about"); },
+  "you-posture": function (el) { S.posture = el.dataset.v; save(); render(); youSheet("posture"); },
+  "you-research": function () {
+    if (S.about.age === UNDER_18) return;   // never set for someone under 18 (D5.1)
+    S.about.consent = !S.about.consent; S.about.consentUpdatedAt = new Date().toISOString(); save(); render();
+  },
+  "you-export": function () { exportData(); },
   "you-pick": function (el) {
     var f = el.dataset.f, v = el.dataset.v;
     if (f === "age" && v === UNDER_18) {
@@ -2728,15 +2830,15 @@ var actions = {
       S.about[f] = S.about[f] === v ? null : v;
       if (f === "gender" && S.about.gender !== SELF_DESCRIBE) S.about.genderSelf = "";
     }
-    save(); var y = window.scrollY; render(); window.scrollTo(0, y);
+    save(); var y = window.scrollY; render(); window.scrollTo(0, y); if (UI.youSheet === "about") youSheet("about");
   },
   "you-goal": function (el) {
     var n = Number(el.dataset.v);
     if (n === S.goalDays) { S.pendingGoal = null; S.pendingFrom = null; }
     else { S.pendingGoal = n; S.pendingFrom = Score.addDays(Score.weekStart(today()), 7); }
-    save(); var y = window.scrollY; render(); window.scrollTo(0, y);
+    save(); render(); youSheet("goal");
   },
-  "you-length": function (el) { S.goalMinutes = Number(el.dataset.v); save(); var y = window.scrollY; render(); window.scrollTo(0, y); },
+  "you-length": function (el) { S.goalMinutes = Number(el.dataset.v); save(); render(); youSheet("length"); },
   "posture": function (el) { S.posture = el.dataset.v; save(); render(); },
   "history-today": function () { openHistory({ day: today() }); },
   "history-all": function () { openHistory(null); },
@@ -2774,13 +2876,13 @@ document.addEventListener("click", function (e) {
 });
 document.addEventListener("input", function (e) {
   if (e.target.id === "survey-notes" && S.survey) { S.survey.notes = e.target.value; save(); }
-  if (e.target.id === "you-name" && S.about.age !== UNDER_18) { S.about.name = e.target.value.slice(0, 40); save(); }
+  if (e.target.id === "you-name" && S.about.age !== UNDER_18) { S.about.name = e.target.value.slice(0, 40); save(); render(); }
   if (e.target.id === "you-self") { S.about.genderSelf = e.target.value.slice(0, 60); save(); }
 });
 document.addEventListener("change", function (e) {
   if (e.target.id === "you-consent") {
     if (S.about.age === UNDER_18) { e.target.checked = false; return; }   // never set for someone under 18 (D5.1)
-    S.about.consent = e.target.checked; S.about.consentUpdatedAt = new Date().toISOString(); save();
+    S.about.consent = e.target.checked; S.about.consentUpdatedAt = new Date().toISOString(); save(); render();
   }
 });
 
@@ -2814,6 +2916,9 @@ if (params.get("selftest") === "1") {
   $("#app").innerHTML = '<pre class="selftest">' + esc(result.text) + "</pre>";
 } else {
   S = loadState();
+  if (!S.createdAt || S.sessions.some(function (x) { return x.startedAt < S.createdAt; })) {
+    S.createdAt = Math.min.apply(null, [S.createdAt || Date.now()].concat(S.sessions.map(function (x) { return x.startedAt; }))); save();
+  }
   applyPendingGoal();
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && S && !SES) { var before = S.goalDays; applyPendingGoal(); if (S.goalDays !== before) render(); } });
   recoverCheckpoint();
