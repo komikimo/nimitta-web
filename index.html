@@ -1755,6 +1755,14 @@ var INSTRUCTIONS = {
 };
 var LENGTHS = params.get("quick") === "1" ? [1, 5, 10, 15, 20, 30, 45, 60, 90] : [5, 10, 15, 20, 30, 45, 60, 90];
 var CUSTOM_MIN = 1, CUSTOM_MAX = 180, DISCARDS_PER_WEEK = 3, EXIT_PANEL_MS = 4000;
+/* D9: the interval bell. Only intervals shorter than the session; none within 30 s of the planned end. */
+var INTERVALS = [2, 3, 5, 10, 15, 20, 30], INTERVAL_QUIET_BEFORE_END_MS = 30 * 1000;
+function intervalAllowed(interval, sessionMinutes) { return interval < sessionMinutes; }
+function intervalOffsetsMs(interval, plannedMs) {
+  var out = [];
+  for (var t = interval * 60000; t < plannedMs; t += interval * 60000) if (plannedMs - t > INTERVAL_QUIET_BEFORE_END_MS) out.push(t);
+  return out;
+}
 /** C5: a whole number of minutes from 1 to 180, or null. Duration never enters a score. */
 function customMinutes(text) {
   var t = String(text).trim();
@@ -1793,7 +1801,7 @@ function freshState() {
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
     experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
-    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now()
+    checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now(), interval: null
   };
 }
 function testerCode() {
@@ -1962,6 +1970,8 @@ function renderOnboarding() {
 /* Sit (UX §7.2) with the Cue above Begin (Dhamma §5.1). No score here. */
 function renderSit() {
   var t = today(), w = thisWeek(), minutes = UI.sittingMinutes || S.goalMinutes, met = w.practiceDays >= S.goalDays;
+  // A session shortened below the chosen interval turns the bell off, and says so once (D9.2).
+  if (S.interval && !intervalAllowed(S.interval, minutes)) { S.interval = null; UI.intervalOff = true; save(); }
   var menu = UI.menuOpen ? '<div class="menu">' + LENGTHS.map(function (n) {
     return '<button data-action="pick-minutes" data-v="' + n + '"><span>' + n + " min</span><span>" + (n === minutes ? "✓" : "") + "</span></button>";
   }).join("") + '<button data-action="custom-sheet"><span>Custom</span><span>' + (LENGTHS.indexOf(minutes) < 0 ? "✓" : "") + "</span></button></div>" : "";
@@ -1976,6 +1986,9 @@ function renderSit() {
     '<div class="postures">' + POSTURES.map(function (p) {
       return '<button class="' + (S.posture === p.key ? "on" : "") + '" data-action="posture" data-v="' + p.key + '" aria-pressed="' + (S.posture === p.key) + '">' + p.label + "</button>";
     }).join("") + "</div>" +
+    '<button class="today-line" data-action="interval-sheet" style="justify-content:center;gap:6px;margin:-20px 0 ' + (UI.intervalOff ? "0" : "20px") + '">' +
+    '<span>Interval bell</span><span>·</span><span style="color:var(--ink)">' + (S.interval ? "Every " + S.interval + " min" : "Off") + "</span></button>" +
+    (UI.intervalOff ? '<p class="caption" style="text-align:center;margin-bottom:20px">Interval bell turned off — it must be shorter than the session.</p>' : "") +
     // Two lines, no more (D6.2): where to rest attention, then the Cue.
     '<p class="anchor">' + esc(posture(S.posture).anchor) + "</p>" +
     '<p class="cue">' + esc(cue()) + "</p>" +
@@ -2242,7 +2255,7 @@ function exportData() {
     sessions: kept().map(function (s) {
       return { id: s.id, started_at: new Date(s.startedAt).toISOString(), ended_at: s.endedAt ? new Date(s.endedAt).toISOString() : null,
                local_date: s.date, planned_seconds: s.plannedSeconds, actual_seconds: s.actualSeconds, state: s.state,
-               posture: s.posture || "sitting", tap_offsets_ms: s.taps, check_in: s.checkIn || null };
+               posture: s.posture || "sitting", interval_minutes: s.interval || null, tap_offsets_ms: s.taps, check_in: s.checkIn || null };
     }),
     phase0: S.survey
   };
@@ -2262,7 +2275,7 @@ function historyRow(s) {
   var at = new Date(s.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   var returns = s.tapCount === 1 ? "1 return" : s.tapCount + " returns";
   return at + " · " + posture(s.posture).label + " · " + Math.round(s.plannedSeconds / 60) + " min · " +
-    (s.state === "completed" ? "Completed" : "Unfinished") + " · " + returns;
+    (s.state === "completed" ? "Completed" : "Unfinished") + " · " + returns + (s.interval ? " · Interval bell every " + s.interval + " min" : "");
 }
 function openHistory(focus) {
   var byDay = {};
@@ -2394,18 +2407,20 @@ function unlockAudio() {
     src.buffer = silent; src.connect(AC.destination); src.start(0);   // iOS starts audio only inside a tap
   } catch (e) { AC = null; }
 }
-function bellBuffer(fundamental) {
-  var rate = AC.sampleRate, length = 5, frames = Math.floor(length * rate);
+/* The opening and closing bells use the defaults; the interval bell is softer and shorter (D9.4). */
+function bellBuffer(fundamental, length, decayScale, level) {
+  length = length || 5; decayScale = decayScale || 1; level = level || 0.5;
+  var rate = AC.sampleRate, frames = Math.floor(length * rate);
   var buffer = AC.createBuffer(1, frames, rate), data = buffer.getChannelData(0);
   var partials = [[1.000, 1.00, 1.30], [1.004, 0.50, 1.30], [2.710, 0.40, 0.80], [5.150, 0.18, 0.45], [8.400, 0.08, 0.25]];
   var attack = 0.004, release = 0.2, peak = 0;
   for (var i = 0; i < frames; i++) {
     var t = i / rate, v = 0;
-    for (var p = 0; p < partials.length; p++) v += partials[p][1] * Math.exp(-t / partials[p][2]) * Math.sin(2 * Math.PI * fundamental * partials[p][0] * t);
+    for (var p = 0; p < partials.length; p++) v += partials[p][1] * Math.exp(-t / (partials[p][2] * decayScale)) * Math.sin(2 * Math.PI * fundamental * partials[p][0] * t);
     v *= Math.min(1, t / attack) * Math.min(1, (length - t) / release);
     data[i] = v; if (Math.abs(v) > peak) peak = Math.abs(v);
   }
-  if (peak > 0) for (var j = 0; j < frames; j++) data[j] *= 0.5 / peak;
+  if (peak > 0) for (var j = 0; j < frames; j++) data[j] *= level / peak;
   return buffer;
 }
 function play(buffer, gain) {
@@ -2416,8 +2431,9 @@ function play(buffer, gain) {
     src.buffer = buffer; g.gain.value = gain; src.connect(g).connect(AC.destination); src.start();
   } catch (e) {}
 }
-function strike(kind) {   // opening 220 Hz, closing 196 Hz, as BellPlayer.swift
+function strike(kind) {   // opening 220 Hz, closing 196 Hz, interval 330 Hz soft and short, as BellPlayer.swift
   if (!AC) return;
+  if (kind === "interval") { play(BUFFERS.interval || (BUFFERS.interval = bellBuffer(330, 2, 0.35, 0.25)), 1); return; }
   var f = kind === "opening" ? 220 : 196;
   play(BUFFERS[f] || (BUFFERS[f] = bellBuffer(f)), 1);
 }
@@ -2455,7 +2471,9 @@ function begin(minutes, practice) {
   holdScreenOn();
   UI.menuOpen = false; closeSheet();
   SES = { id: uuid(), phase: "entering", plannedMs: minutes * 60 * 1000, practice: !!practice, taps: [], awayTotal: 0, awayStart: null, lastCheckpoint: 0,
-          canDiscard: true, cappedRecorded: false, panelTimer: null, posture: practice ? "sitting" : S.posture };
+          canDiscard: true, cappedRecorded: false, panelTimer: null, posture: practice ? "sitting" : S.posture,
+          interval: !practice && S.interval && intervalAllowed(S.interval, minutes) ? S.interval : null, nextInterval: 0 };
+  SES.intervalAt = SES.interval ? intervalOffsetsMs(SES.interval, SES.plannedMs) : [];
   document.documentElement.classList.add("sitting"); setThemeColor("#05080C");
   var layer = $("#session");
   layer.innerHTML = '<div class="end-zone" id="endZone"><span class="stop">Stop</span></div>' +
@@ -2484,6 +2502,12 @@ function tick() {
   if (!SES || SES.phase !== "running" || document.visibilityState === "hidden") return;
   var now = Date.now();
   if (now - SES.startedAt >= SES.plannedMs) { finish("completed", SES.startedAt + SES.plannedMs); return; }
+  // The interval bell: rung on time while the page is visible. One that fell while the page was hidden is skipped,
+  // never rung late (D9.7). Never a tap, never scored, nothing on the screen.
+  while (SES.nextInterval < SES.intervalAt.length && now - SES.startedAt >= SES.intervalAt[SES.nextInterval]) {
+    if (now - SES.startedAt - SES.intervalAt[SES.nextInterval] < 2000) strike("interval");
+    SES.nextInterval++;
+  }
   if (now - SES.lastCheckpoint >= CHECKPOINT_MS) writeCheckpoint();
 }
 
@@ -2562,17 +2586,17 @@ function writeCheckpoint() {
   if (!SES || SES.practice || SES.phase !== "running") return;
   var now = Date.now();
   SES.lastCheckpoint = now;
-  S.checkpoint = { id: SES.id, startedAt: SES.startedAt, plannedMs: SES.plannedMs, taps: SES.taps.slice(), posture: SES.posture,
+  S.checkpoint = { id: SES.id, startedAt: SES.startedAt, plannedMs: SES.plannedMs, taps: SES.taps.slice(), posture: SES.posture, interval: SES.interval,
     lastKnownAt: SES.awayStart !== null ? SES.awayStart : now, awayTotal: SES.awayTotal, awayStart: SES.awayStart };
   save();
 }
 
-function record(id, startedAt, plannedMs, taps, elapsedMs, state, ending, posture) {
+function record(id, startedAt, plannedMs, taps, elapsedMs, state, ending, posture, interval) {
   var recorded = Math.min(elapsedMs, plannedMs), endedAt = startedAt + recorded;
   var kept = taps.filter(function (t) { return t <= recorded; });
   return { id: id, date: Score.ymd(new Date(endedAt)), startedAt: startedAt, endedAt: endedAt,
     plannedSeconds: Math.round(plannedMs / 1000), actualSeconds: Math.floor(recorded / 1000),
-    state: state, ending: ending, taps: kept, tapCount: kept.length, checkIn: null, posture: posture || "sitting" };
+    state: state, ending: ending, taps: kept, tapCount: kept.length, checkIn: null, posture: posture || "sitting", interval: interval || null };
 }
 
 /** reason: completed | ended | discarded | away */
@@ -2588,7 +2612,7 @@ function finish(reason, endedAt) {
   var stored = null, wasPractice = SES.practice;
   if (!wasPractice) {
     S.checkpoint = null;
-    if (state) { stored = record(SES.id, SES.startedAt, SES.plannedMs, SES.taps, elapsed, state, reason, SES.posture); S.sessions.push(stored); }
+    if (state) { stored = record(SES.id, SES.startedAt, SES.plannedMs, SES.taps, elapsed, state, reason, SES.posture, SES.interval); S.sessions.push(stored); }
     // Kept on the phone to count against the cap, in no ratio, never in the results as a sitting (D5.4). Under 60 s it
     // is not stored either way and costs no discard.
     if (state === "discarded") S.discards.push({ at: Date.now(), week: Score.weekStart(today()), capped: false });
@@ -2619,7 +2643,7 @@ function recoverCheckpoint() {
   if (c.awayStart !== null && c.awayStart !== undefined && c.awayTotal + (c.lastKnownAt - c.awayStart) > AWAY_ALLOWANCE_MS) endAt = c.awayStart;
   var elapsed = endAt - c.startedAt;
   if (elapsed >= MINIMUM_STORED_MS && !S.sessions.some(function (s) { return s.id === c.id; })) {
-    S.sessions.push(record(c.id, c.startedAt, c.plannedMs, c.taps || [], elapsed, "incomplete", "closed", c.posture));
+    S.sessions.push(record(c.id, c.startedAt, c.plannedMs, c.taps || [], elapsed, "incomplete", "closed", c.posture, c.interval));
     S.interrupted = true;
   }
   save();
@@ -2722,7 +2746,7 @@ function resultsText() {
   sessions.forEach(function (s, n) {
     lines.push((n + 1) + ". " + time(s.startedAt) + " · " + (s.posture || "sitting") + " · planned " + Math.round(s.plannedSeconds / 60) + " min · sat " + clock(s.actualSeconds * 1000) +
       " · " + s.state + (s.ending && s.ending !== "completed" ? " (" + { held: "held to end", ended: "ended", away: "away too long", closed: "page closed" }[s.ending] + ")" : "") +
-      " · " + s.tapCount + (s.tapCount === 1 ? " tap" : " taps") + (s.taps.length ? " at " + s.taps.map(clock).join(" ") : ""));
+      (s.interval ? " · interval bell every " + s.interval + " min" : "") + " · " + s.tapCount + (s.tapCount === 1 ? " tap" : " taps") + (s.taps.length ? " at " + s.taps.map(clock).join(" ") : ""));
     if (s.checkIn) lines.push("   check-in: " + HINDRANCES.map(function (h) { var v = s.checkIn[h.key]; return h.name + " " + (v === undefined || v === null ? "-" : ANSWERS[v]); }).join(", "));
     else if (s.state === "completed") lines.push("   check-in: skipped");
   });
@@ -2756,7 +2780,7 @@ var actions = {
   "tab": function (el) { UI.tab = el.dataset.tab; UI.menuOpen = false; render(); window.scrollTo(0, 0); },
   "arc": function () { UI.menuOpen = !UI.menuOpen; render(); },
   "pick-minutes": function (el) { UI.sittingMinutes = Number(el.dataset.v); UI.menuOpen = false; render(); },
-  "begin": function () { begin(UI.sittingMinutes || S.goalMinutes, false); },
+  "begin": function () { UI.intervalOff = false; begin(UI.sittingMinutes || S.goalMinutes, false); },
   "toggle-sound": function () { S.tapSound = !S.tapSound; save(); render(); },
   "why": function () { openSheet(WHY); },
   "close-sheet": function () { closeSheet(); UI.youSheet = null; if (!S.warned && S.onboarded) { S.warned = true; save(); } },
@@ -2839,6 +2863,18 @@ var actions = {
     save(); render(); youSheet("goal");
   },
   "you-length": function (el) { S.goalMinutes = Number(el.dataset.v); save(); render(); youSheet("length"); },
+  "interval-sheet": function () {
+    var minutes = UI.sittingMinutes || S.goalMinutes, anyDisabled = false;
+    var rows = [null].concat(INTERVALS).map(function (n) {
+      var ok = n === null || intervalAllowed(n, minutes);
+      if (!ok) anyDisabled = true;
+      return '<button class="you-row" data-action="interval-pick" data-v="' + (n || 0) + '"' + (ok ? "" : ' disabled style="color:var(--ink3)"') + ">" +
+        "<span>" + (n ? "Every " + n + " min" : "Off") + "</span><span>" + ((S.interval || null) === n ? "✓" : "") + "</span></button>";
+    }).join("");
+    openSheet('<h2 class="title">Interval bell</h2><div style="margin-top:12px">' + rows + "</div>" +
+      (anyDisabled ? '<p class="caption" style="margin-top:10px">An interval must be shorter than the session.</p>' : ""));
+  },
+  "interval-pick": function (el) { var n = Number(el.dataset.v); S.interval = n || null; UI.intervalOff = false; save(); closeSheet(); render(); },
   "posture": function (el) { S.posture = el.dataset.v; save(); render(); },
   "history-today": function () { openHistory({ day: today() }); },
   "history-all": function () { openHistory(null); },
