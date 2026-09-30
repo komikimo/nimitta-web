@@ -16,8 +16,8 @@
 -->
 <style>
 :root{
-  --bg:#FAF9F6;--surface:#FFFFFF;--ink:#0E1B2A;--ink2:#4A5A6B;--ink3:#8B98A5;--line:#E4E1DA;
-  --accent:#12355B;--accent2:#2F6FB2;--accentwash:#EAF0F7;--gold:#B8912F;--goldwash:#F3ECD9;
+  --bg:#FAF9F6;--surface:#FFFFFF;--ink:#0E1B2A;--ink2:#4A5A6B;--ink3:#667483;--line:#E4E1DA;
+  --accent:#12355B;--accent2:#2F6FB2;--accentwash:#EAF0F7;--earned:#B8912F;--earnedwash:#F3ECD9;--danger:#B3261E;
   --session:#05080C;--session-line:#1A2836;
   --serif:"New York",ui-serif,"Iowan Old Style",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
@@ -25,16 +25,11 @@
   color-scheme:light dark;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#0A1017;--surface:#121B26;--ink:#EDEAE3;--ink2:#9DAAB8;--ink3:#65737F;--line:#1E2A38;
-    --accent:#7FB0E0;--accent2:#4E8CC4;--accentwash:#16273A;--gold:#D9B64E;--goldwash:#2A2414}
+  :root{--bg:#0A1017;--surface:#121B26;--ink:#EDEAE3;--ink2:#9DAAB8;--ink3:#748491;--line:#1E2A38;
+    --accent:#7FB0E0;--accent2:#4E8CC4;--accentwash:#16273A;--earned:#D9B64E;--earnedwash:#2A2414;--danger:#F2837B}
 }
-/* Colour themes (D10.2): only the accent family changes. Gold and the session screen never do. */
-:root[data-theme="jade"]{--accent:#0F4C3A;--accent2:#2E7D63;--accentwash:#E6F1EC}
-:root[data-theme="onyx"]{--accent:#1C1C1E;--accent2:#4A4A4F;--accentwash:#EEEDEA}
-@media (prefers-color-scheme:dark){
-  :root[data-theme="jade"]{--accent:#7CC7A8;--accent2:#4FA584;--accentwash:#13281F}
-  :root[data-theme="onyx"]{--accent:#D8D4CC;--accent2:#969089;--accentwash:#1F1E1C}
-}
+/* Colour themes (D11.1): Sapphire above is the default. The chosen theme's whole palette is written into
+   <style id="theme-vars"> by applyTheme(), from PALETTES. The session screen never changes. */
 /* A theme change cross-fades over the screen transition, 320ms (150ms under Reduce Motion). */
 html.theming *,html.theming *::before,html.theming *::after{transition:background-color var(--screen) ease-in-out,color var(--screen) ease-in-out,border-color var(--screen) ease-in-out,fill var(--screen) ease-in-out,stroke var(--screen) ease-in-out!important}
 @media (prefers-reduced-motion:reduce){:root{--screen:150ms}}
@@ -56,7 +51,7 @@ input,textarea{font:inherit;color:inherit}
 .secondary{font-size:14px}
 .caption{font-size:12px;letter-spacing:.2px;color:var(--ink3);line-height:1.4}
 .score{font-size:64px;font-weight:300;letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1}
-.ink2{color:var(--ink2)}.ink3{color:var(--ink3)}.gold{color:var(--gold)}
+.ink2{color:var(--ink2)}.ink3{color:var(--ink3)}.danger{color:var(--danger)!important}
 .num{font-variant-numeric:tabular-nums}
 
 /* Pieces */
@@ -136,7 +131,7 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .s1{background:color-mix(in srgb,var(--accent2) 35%,transparent)!important}
 .s2{background:color-mix(in srgb,var(--accent2) 65%,transparent)!important}
 .s3{background:var(--accent2)!important}
-.ring{box-shadow:inset 0 0 0 1.5px var(--gold)!important}
+.ring{box-shadow:inset 0 0 0 1.5px var(--earned)!important}
 .legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--ink3)}
 .legend i{width:10px;height:10px;display:inline-block}
 .comp{margin-top:18px}
@@ -148,6 +143,20 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .you-row{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:48px;border-bottom:1px solid var(--line);font-size:16px;font-weight:500;text-align:left}
 .you-row span:last-child{color:var(--ink2);font-weight:400;font-variant-numeric:tabular-nums}
 .you-row:disabled{opacity:1;cursor:default}
+/* Reminders (D11.4): swipe a row left to show Delete. */
+.rem{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+.rem-body{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;background:var(--surface);position:relative;z-index:1;transition:transform .2s ease-out;touch-action:pan-y}
+.rem.open .rem-body{transform:translateX(-88px)}
+.rem-del{position:absolute;right:0;top:0;bottom:0;width:88px;background:var(--danger);color:var(--bg);font-weight:500}
+.rem-del{visibility:hidden}.rem.open .rem-del{visibility:visible}
+.rem input[type=time]{width:auto;min-width:120px}
+.confirm .primary:disabled{opacity:.4;cursor:default}
+.primary.danger-fill{background:var(--danger)}
+/* ?themes=1: every variant, stacked (D11.1). */
+.variant{background:var(--bg);color:var(--ink);padding:24px 0 32px;border-bottom:8px solid #888}
+.variant>h2{font-family:var(--sans);font-size:15px;font-weight:600;padding:0 24px 12px}
+.variant .frame{max-width:480px;margin:0 auto;border-top:1px solid var(--line)}
+.variant .sit{min-height:0}
 .chart text{font-size:10px;fill:var(--ink3);font-family:var(--sans)}
 
 /* Layers */
@@ -1808,7 +1817,7 @@ function freshState() {
   return {
     v: 1, tester: testerCode(), onboarded: false, step: 0,
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
-    experience: null, goalDays: 7, goalMinutes: 20, reminder: "07:00",
+    experience: null, goalDays: 7, goalMinutes: 20, reminders: [],
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
     checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now(), interval: null,
     theme: "sapphire", bell: "temple-bowl"
@@ -1827,7 +1836,18 @@ function uuid() {
   return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
 }
 function loadState() {
-  try { var raw = localStorage.getItem(KEY); if (raw) return Object.assign(freshState(), JSON.parse(raw)); }
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) {
+      var stored = Object.assign(freshState(), JSON.parse(raw));
+      // D11.4: the single onboarding reminder becomes the first of the list.
+      if (typeof stored.reminder === "string") {
+        if (!stored.reminders.length && stored.onboarded) stored.reminders = [{ id: uuid(), time: stored.reminder, on: true }];
+        delete stored.reminder;
+      }
+      return stored;
+    }
+  }
   catch (e) { if (memoryCopy) return memoryCopy; }
   return freshState();
 }
@@ -1970,7 +1990,7 @@ function renderOnboarding() {
       '<p class="reading">To stop at any time, tap Stop at the top of the screen.</p>';
     foot = '<button class="primary" data-action="onb-try">Try it for 60 seconds</button>';
   } else {
-    body = '<h1 class="title">What time will you practise?</h1><input class="field" type="time" id="onb-time" value="' + esc(S.reminder) + '" style="width:150px">';
+    body = '<h1 class="title">What time will you practise?</h1><input class="field" type="time" id="onb-time" value="' + esc(S.reminders.length ? S.reminders[0].time : "07:00") + '" style="width:150px">';
     foot = '<button class="primary" data-action="onb-finish">Continue</button>';
   }
   return '<div class="onb"><div class="onb-top"><div class="progress">' + bars + "</div>" + skip + "</div>" +
@@ -2007,7 +2027,7 @@ function renderSit() {
     '<div class="hairline" style="margin-top:32px"></div>' +
     (change ? renderChange(change) : "") +
     '<div class="row secondary" style="padding:14px 0 6px"><span class="ink2">This week</span>' +
-    '<span class="num"><span class="' + (met ? "gold" : "") + '">' + w.practiceDays + "</span> of " + S.goalDays + " days</span></div>" +
+    '<span class="num">' + w.practiceDays + " of " + S.goalDays + " days</span></div>" +
     (left ? '<p class="caption">' + esc(daysLeftLine(left)) + "</p>" : "") +
     renderStrip(w, t) +
     '<button class="today-line" data-action="history-today"><span>' + esc(todayLine()) + "</span><span>›</span></button>" +
@@ -2163,7 +2183,15 @@ function monthMap(m, t) {
     inMonth.forEach(function (s) { starts[new Date(s.startedAt).getHours()]++; });
     usual = starts.indexOf(Math.max.apply(null, starts));   // the earlier hour on a tie
   }
-  return { days: days, cells: cells, inMonth: inMonth, satDays: Object.keys(sat).length,
+  // D11.3: posture is data. The posture of most finished sessions this month; none under three, none on a tie.
+  var usualPosture = null, finished = inMonth.filter(function (s) { return s.state === "completed"; });
+  if (finished.length >= 3) {
+    var counts = {}; finished.forEach(function (s) { var k = s.posture || "sitting"; counts[k] = (counts[k] || 0) + 1; });
+    var most = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
+    var top = Object.keys(counts).filter(function (k) { return counts[k] === most; });
+    if (top.length === 1) usualPosture = top[0];
+  }
+  return { days: days, cells: cells, inMonth: inMonth, satDays: Object.keys(sat).length, usualPosture: usualPosture,
            dayCount: m === firstOfMonth(t) ? Number(t.slice(8)) : days.length, usual: usual };
 }
 
@@ -2191,7 +2219,8 @@ function renderMonth(t) {
     '<span class="ui">' + esc(title) + '</span><button data-action="month-next"' + (m < firstOfMonth(t) ? "" : " disabled") + ' aria-label="›">›</button></div>' +
     grid +
     '<p class="secondary ink2" style="margin-top:16px">You practised on ' + map.satDays + " of " + map.dayCount + " days this month.</p>" +
-    (map.usual === null ? "" : '<p class="secondary ink2" style="margin-top:4px">You most often practise between ' + two(map.usual) + ":00 and " + two(map.usual + 1) + ":00.</p>");
+    (map.usual === null ? "" : '<p class="secondary ink2" style="margin-top:4px">You most often practise between ' + two(map.usual) + ":00 and " + two(map.usual + 1) + ":00.</p>") +
+    (map.usualPosture === null ? "" : '<p class="secondary ink2" style="margin-top:4px">' + POSTURE_SENTENCE[map.usualPosture] + "</p>");
 }
 
 /* You (D8.3): the signed-in layout, never a registration form. There is no account on this page, so the sign-in line
@@ -2211,15 +2240,27 @@ function renderYou() {
     '<div class="label" style="margin-top:32px">Your practice</div>' +
     row("Days a week", String(S.goalDays), "you-sheet-goal") +
     row("Session length", S.goalMinutes + " min", "you-sheet-length") +
-    row("Usual posture", posture(S.posture).label, "you-sheet-posture") +
-    row("Reminder", "Off", null, true) +
+    row("Reminders", remindersValue(), "you-sheet-reminders") +
     '<div style="margin-top:24px"></div>' + row("About you", null, "you-sheet-about") +
     '<div class="label" style="margin-top:24px">Appearance</div>' +
     row("Theme", themeName(S.theme), "you-sheet-theme") +
     row("Bell", bellSet(S.bell).label, "you-sheet-bell") +
     '<div class="label" style="margin-top:24px">Privacy</div>' +
     row("Use my answers in research", a.consent ? "On" : "Off", "you-research", minor) +
-    row("Export my data", null, "you-export") + "</div>";
+    row("Export my data", null, "you-export") +
+    // D11.2: no account here, so no Sign out; Delete account wipes the page and starts again.
+    row("Clear history", null, "you-sheet-clear") +
+    '<button class="you-row danger" data-action="you-sheet-delete"><span>Delete account</span><span>›</span></button>' + "</div>";
+}
+
+/* Reminders (D11.4): stored only; a web page cannot notify. Times follow the browser's 12- or 24-hour style. */
+function reminderTime(hhmm) {
+  var parts = hhmm.split(":"), d = new Date(); d.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function remindersValue() {
+  var on = S.reminders.filter(function (r) { return r.on; });
+  return on.length ? on.map(function (r) { return reminderTime(r.time); }).join(", ") : "Off";
 }
 
 /* The sheets behind the You rows. They re-draw in place when something inside them changes. */
@@ -2239,6 +2280,20 @@ function youSheet(kind) {
     html = '<h2 class="title">How long is one session?</h2><div class="seg" style="margin-top:16px">' + LENGTHS.map(function (n) {
       return '<button class="' + (!custom && S.goalMinutes === n ? "on" : "") + '" data-action="you-length" data-v="' + n + '">' + n + "</button>";
     }).join("") + '<button class="' + (custom ? "on" : "") + '" data-action="custom-sheet" data-scope="goal">Custom</button></div><p class="caption" style="margin-top:8px">minutes</p>';
+  } else if (kind === "reminders") {
+    html = '<h2 class="title">Reminders</h2><div style="margin-top:12px;border-top:1px solid var(--line)">' + S.reminders.map(function (r) {
+      return '<div class="rem" data-id="' + r.id + '"><div class="rem-body">' +
+        '<input class="field" type="time" data-rem="' + r.id + '" value="' + esc(r.time) + '" aria-label="' + esc(reminderTime(r.time)) + '">' +
+        '<button class="switch' + (r.on ? " on" : "") + '" role="switch" aria-checked="' + r.on + '" aria-label="' + esc(reminderTime(r.time)) + '" data-action="rem-toggle" data-id="' + r.id + '"></button></div>' +
+        '<button class="rem-del" data-action="rem-delete" data-id="' + r.id + '">Delete</button></div>';
+    }).join("") + "</div>" +
+      (S.reminders.length < MAX_REMINDERS ? '<button class="textlink" data-action="rem-add" style="margin-top:8px">+ Add a reminder</button>' : "");
+  } else if (kind === "clear" || kind === "delete") {
+    var c = CONFIRM[kind];
+    html = '<div class="confirm"><h2 class="title">' + c.title + "</h2>" + c.lines.map(function (l) { return '<p class="reading" style="margin-top:12px">' + l + "</p>"; }).join("") +
+      '<p class="secondary ink2" style="margin-top:16px">' + c.prompt + '</p><input class="field" id="confirm-word" data-word="' + c.word + '" autocomplete="off" autocapitalize="characters" spellcheck="false" style="margin-top:8px" aria-label="' + c.prompt + '">' +
+      '<button class="primary' + (kind === "delete" ? " danger-fill" : "") + '" id="confirm-go" data-action="confirm-' + kind + '" style="margin-top:16px" disabled>' + c.action + "</button>" +
+      '<button class="outline" data-action="close-sheet" style="margin-top:8px">Cancel</button></div>';
   } else if (kind === "theme") {
     html = '<h2 class="title">Theme</h2><div class="chips" style="margin-top:16px">' + THEMES.map(function (t) {
       return '<button class="' + (S.theme === t.key ? "on" : "") + '" data-action="you-theme" data-v="' + t.key + '">' + t.label + "</button>";
@@ -2271,7 +2326,8 @@ function youSheet(kind) {
 function exportData() {
   var data = {
     exported_at: new Date().toISOString(), version: "web 1",
-    settings: { goal_days: S.goalDays, pending_goal_days: S.pendingGoal, session_minutes: S.goalMinutes, usual_posture: S.posture, tap_sound: S.tapSound },
+    settings: { goal_days: S.goalDays, pending_goal_days: S.pendingGoal, session_minutes: S.goalMinutes, last_posture: S.posture, tap_sound: S.tapSound,
+                reminders: S.reminders.map(function (r) { return { time: r.time, on: r.on }; }) },
     about_you: S.about, experience: S.experience === null ? null : EXPERIENCE[S.experience],
     sessions: kept().map(function (s) {
       return { id: s.id, started_at: new Date(s.startedAt).toISOString(), ended_at: s.endedAt ? new Date(s.endedAt).toISOString() : null,
@@ -2469,6 +2525,23 @@ function knocks(count, level) {
 }
 /* Bell sets (D10.1). Each is opening, interval, closing; the interval is always the softest. The app's fourth set,
    Vibration only, is not offered here: Safari on iPhone cannot vibrate. */
+var MAX_REMINDERS = 4;
+var POSTURE_SENTENCE = {
+  sitting: "Most of your sessions this month were sitting.", standing: "Most of your sessions this month were standing.",
+  walking: "Most of your sessions this month were walking.", lying: "Most of your sessions this month were lying down."
+};
+/* Clear history and Delete account (D11.2), in the page's own words: there is no account or subscription here. */
+var CONFIRM = {
+  clear: { title: "Clear all history?", word: "CLEAR", action: "Clear history", prompt: "Type CLEAR to confirm.",
+           lines: ["Every session, check-in and score on this phone will be deleted. Your settings stay. This cannot be undone."] },
+  delete: { title: "Delete your account?", word: "DELETE", action: "Delete account", prompt: "Type DELETE to confirm.",
+            lines: ["Everything on this phone will be permanently deleted. This cannot be undone."] }
+};
+function confirmTyped() {
+  var field = $("#confirm-word");
+  return !!field && field.value.trim().toUpperCase() === field.dataset.word;
+}
+
 var BELL_SETS = [
   { key: "temple-bowl", label: "Temple bowl", make: {
     opening: function () { return bellBuffer(220); }, closing: function () { return bellBuffer(196); },
@@ -2515,17 +2588,42 @@ async function holdScreenOn() {
   catch (e) { wakeLock = null; }
 }
 function releaseScreen() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
-var THEMES = [{ key: "sapphire", label: "Sapphire" }, { key: "jade", label: "Jade" }, { key: "onyx", label: "Onyx" }];
-function themeName(key) { return (THEMES.filter(function (t) { return t.key === key; })[0] || THEMES[0]).label; }
-/* D10.2: the theme applies at once across the page; `fade` cross-fades it over the screen transition. */
+/* D11.1: each theme defines the whole palette, light and dark, as ColorTheme in Appearance.swift. `earned` means
+   "you kept your word this week" and always comes with the ring shape. Every variant is AA for body text, captions,
+   links and the Begin label. */
+var THEMES = [{ key: "sapphire", label: "Sapphire" }, { key: "ivory-gold", label: "Ivory & Gold" }, { key: "onyx", label: "Onyx" }];
+var TOKENS = ["bg", "surface", "ink", "ink2", "ink3", "line", "accent", "accent2", "accentwash", "earned", "earnedwash"];
+var PALETTES = {
+  "sapphire":   { light: ["#FAF9F6", "#FFFFFF", "#0E1B2A", "#4A5A6B", "#667483", "#E4E1DA", "#12355B", "#2F6FB2", "#EAF0F7", "#B8912F", "#F3ECD9"],
+                  dark:  ["#0A1017", "#121B26", "#EDEAE3", "#9DAAB8", "#748491", "#1E2A38", "#7FB0E0", "#4E8CC4", "#16273A", "#D9B64E", "#2A2414"] },
+  "ivory-gold": { light: ["#F6F1E6", "#FFFCF5", "#2A2418", "#5E5443", "#776C5A", "#E3DACA", "#8A6822", "#8A6822", "#F0E6CF", "#12355B", "#E4EAF2"],
+                  dark:  ["#17130D", "#211B13", "#F1EADB", "#C4B89F", "#9A8E78", "#342B1F", "#D9BF7F", "#C9A95C", "#2E2616", "#8FB5E0", "#1A2433"] },
+  "onyx":       { light: ["#EFECE6", "#F8F6F2", "#1A1A1C", "#4A4A4F", "#6B6A66", "#DCD8D0", "#1C1C1E", "#4A4A4F", "#E2DED6", "#B8912F", "#EDE3C8"],
+                  dark:  ["#0E0E10", "#18181B", "#EDEAE3", "#A8A49C", "#8A867F", "#26262A", "#D8D4CC", "#969089", "#1F1E1C", "#D9B64E", "#2A2414"] }
+};
+var DANGER = { light: "#B3261E", dark: "#F2837B" };
+function themeKey(key) { return PALETTES[key] ? key : "sapphire"; }   // a D10 theme (Jade) falls back to Sapphire
+function themeName(key) { return THEMES.filter(function (t) { return t.key === themeKey(key); })[0].label; }
+function paletteVars(key, mode) {
+  return TOKENS.map(function (t, i) { return "--" + t + ":" + PALETTES[key][mode][i]; }).join(";") + ";--danger:" + DANGER[mode] + ";color-scheme:" + mode;
+}
+/* The theme applies at once across the page; `fade` cross-fades it over the screen transition. */
 var themeFade = null;
 function applyTheme(fade) {
-  var root = document.documentElement;
+  var root = document.documentElement, key = themeKey(S.theme), style = $("#theme-vars");
   if (fade) {
     root.classList.add("theming"); clearTimeout(themeFade);
     themeFade = setTimeout(function () { root.classList.remove("theming"); }, 400);
   }
-  if (S.theme && S.theme !== "sapphire") root.dataset.theme = S.theme; else delete root.dataset.theme;
+  if (!style) { style = document.createElement("style"); style.id = "theme-vars"; document.head.appendChild(style); }
+  style.textContent = ":root{" + paletteVars(key, "light") + "}@media (prefers-color-scheme:dark){:root{" + paletteVars(key, "dark") + "}}";
+  // The browser bar follows the theme's ground, except while a session holds it at #05080C.
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+    var dark = /dark/.test(m.getAttribute("media") || ""), bg = PALETTES[key][dark ? "dark" : "light"][0];
+    var sessionColor = m.dataset.original && m.content !== m.dataset.original;
+    m.dataset.original = bg;
+    if (!sessionColor) m.content = bg;
+  });
 }
 function setThemeColor(color) {
   document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
@@ -2906,9 +3004,30 @@ var actions = {
   "grid-day": function (el) { openHistory({ day: el.dataset.d }); },
   "you-sheet-goal": function () { youSheet("goal"); },
   "you-sheet-length": function () { youSheet("length"); },
-  "you-sheet-posture": function () { youSheet("posture"); },
+  "you-sheet-reminders": function () { youSheet("reminders"); },
+  "you-sheet-clear": function () { youSheet("clear"); },
+  "you-sheet-delete": function () { youSheet("delete"); },
+  "rem-add": function () {
+    if (S.reminders.length >= MAX_REMINDERS) return;
+    var last = S.reminders[S.reminders.length - 1], time = "07:00";
+    if (last) { var h = (Number(last.time.slice(0, 2)) + 1) % 24; time = String(h).padStart(2, "0") + last.time.slice(2); }
+    S.reminders.push({ id: uuid(), time: time, on: true }); save(); render(); youSheet("reminders");
+  },
+  "rem-toggle": function (el) { S.reminders.forEach(function (r) { if (r.id === el.dataset.id) r.on = !r.on; }); save(); render(); youSheet("reminders"); },
+  "rem-delete": function (el) { S.reminders = S.reminders.filter(function (r) { return r.id !== el.dataset.id; }); save(); render(); youSheet("reminders"); },
+  "confirm-clear": function () {
+    if (!confirmTyped()) return;
+    // Every session, with its check-in, and the discards; settings, About you and the Phase 0 answers stay.
+    S.sessions = []; S.discards = []; S.pendingCheckIn = null; S.checkpoint = null; S.interrupted = false;
+    save(); closeSheet(); UI.youSheet = null; render();
+  },
+  "confirm-delete": function () {
+    if (!confirmTyped()) return;
+    try { localStorage.removeItem(KEY); } catch (e) {}
+    memoryCopy = null; S = freshState(); save(); closeSheet(); UI.youSheet = null; UI.tab = "sit";
+    applyTheme(false); render(); window.scrollTo(0, 0);
+  },
   "you-sheet-about": function () { youSheet("about"); },
-  "you-posture": function (el) { S.posture = el.dataset.v; save(); render(); youSheet("posture"); },
   "you-sheet-theme": function () { youSheet("theme"); },
   "you-sheet-bell": function () { youSheet("bell"); },
   "you-theme": function (el) { S.theme = el.dataset.v; save(); applyTheme(true); render(); youSheet("theme"); },
@@ -2963,7 +3082,10 @@ var actions = {
   "met-open": function (el) { var h = HINDRANCES.filter(function (x) { return x.key === el.dataset.h; })[0]; openSheet('<h2 class="title">' + h.name + '</h2><p class="reading" style="margin-top:12px">' + esc(INSTRUCTIONS[h.key]) + "</p>"); },
   "onb-try": function () { begin(1, true); },
   "onb-finish": function () {
-    var t = $("#onb-time"); if (t && t.value) S.reminder = t.value;
+    var t = $("#onb-time");
+    if (t && t.value) {
+      if (S.reminders.length) S.reminders[0].time = t.value; else S.reminders = [{ id: uuid(), time: t.value, on: true }];
+    }
     S.onboarded = true; UI.tab = "sit"; save(); render();
     openSheet('<p class="reading">' + esc(TXT.storageWarning) + '</p><button class="primary" data-action="close-sheet" style="margin-top:24px">Continue</button>');
   },
@@ -2987,16 +3109,70 @@ document.addEventListener("click", function (e) {
   if (UI.menuOpen && !e.target.closest(".menu")) { UI.menuOpen = false; render(); }
 });
 document.addEventListener("input", function (e) {
+  if (e.target.id === "confirm-word") { $("#confirm-go").disabled = !confirmTyped(); }
   if (e.target.id === "survey-notes" && S.survey) { S.survey.notes = e.target.value; save(); }
   if (e.target.id === "you-name" && S.about.age !== UNDER_18) { S.about.name = e.target.value.slice(0, 40); save(); render(); }
   if (e.target.id === "you-self") { S.about.genderSelf = e.target.value.slice(0, 60); save(); }
 });
 document.addEventListener("change", function (e) {
+  if (e.target.dataset && e.target.dataset.rem && e.target.value) {
+    S.reminders.forEach(function (r) { if (r.id === e.target.dataset.rem) r.time = e.target.value; }); save(); render();
+  }
   if (e.target.id === "you-consent") {
     if (S.about.age === UNDER_18) { e.target.checked = false; return; }   // never set for someone under 18 (D5.1)
     S.about.consent = e.target.checked; S.about.consentUpdatedAt = new Date().toISOString(); save(); render();
   }
 });
+
+var swipe = null;
+document.addEventListener("pointerdown", function (e) {
+  var row = e.target.closest(".rem");
+  document.querySelectorAll(".rem.open").forEach(function (r) { if (r !== row && !e.target.closest(".rem-del")) r.classList.remove("open"); });
+  if (row && !e.target.closest("input,.switch,.rem-del")) swipe = { row: row, x: e.clientX };
+});
+document.addEventListener("pointerup", function (e) {
+  if (!swipe) return;
+  var dx = e.clientX - swipe.x;
+  if (dx < -40) swipe.row.classList.add("open"); else if (dx > 40) swipe.row.classList.remove("open");
+  swipe = null;
+});
+
+/* ---------------------------------------------------------------------------------------------------------------
+   ?themes=1 (D11.1): the Practice and Record screens in all six variants, stacked, on made-up data. Nothing is saved,
+   and the tester's own data is never read.
+   --------------------------------------------------------------------------------------------------------------- */
+function demoState() {
+  var state = freshState(), t = today(), seed = 7;
+  function rand() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  state.onboarded = true; state.warned = true; state.goalDays = 5; state.goalMinutes = 20; state.posture = "sitting";
+  for (var back = 34; back >= 0; back--) {
+    var day = Score.addDays(t, -back), weekday = (Score.parseDay(day).getDay() + 6) % 7;
+    var count = weekday >= 5 && rand() < 0.5 ? 0 : rand() < 0.2 ? 0 : rand() < 0.7 ? 1 : rand() < 0.6 ? 2 : 3;
+    for (var i = 0; i < count; i++) {
+      var start = Score.parseDay(day).getTime() + (i === 0 ? 7 : i === 1 ? 19 : 12) * 3600000 + Math.floor(rand() * 40) * 60000;
+      var taps = []; for (var k = Math.floor(rand() * 9); k > 0; k--) taps.push(Math.floor(rand() * 1200000));
+      taps.sort(function (a, b) { return a - b; });
+      var done = rand() > 0.12;
+      var session = record(uuid(), start, 1200000, taps, done ? 1200000 : 600000, done ? "completed" : "incomplete", done ? "completed" : "ended",
+                           rand() < 0.7 ? "sitting" : "walking", null);
+      state.sessions.push(session);
+    }
+  }
+  return state;
+}
+function showThemes() {
+  S = demoState();
+  save = function () {};
+  applyTheme(false);
+  $("#tabbar").hidden = true;
+  $("#app").innerHTML = THEMES.map(function (theme) {
+    return ["light", "dark"].map(function (mode) {
+      return '<section class="variant" style="' + paletteVars(theme.key, mode) + '"><h2>' + theme.label + " · " + mode + "</h2>" +
+        '<div class="frame">' + renderSit() + '</div><div class="frame">' + renderWeek() + "</div></section>";
+    }).join("");
+  }).join("");
+  document.querySelectorAll("[data-target]").forEach(function (el) { el.textContent = el.dataset.target; });
+}
 
 /* ---------------------------------------------------------------------------------------------------------------
    ?selftest=1: the score against the shared 20-week fixture, the same assertions as PracticeScoreFixtureTests.swift
@@ -3022,7 +3198,9 @@ function runSelfTest() {
 /* ---------------------------------------------------------------------------------------------------------------
    Start
    --------------------------------------------------------------------------------------------------------------- */
-if (params.get("selftest") === "1") {
+if (params.get("themes") === "1") {
+  showThemes();
+} else if (params.get("selftest") === "1") {
   var result = runSelfTest();
   document.title = (result.pass ? "PASS" : "FAIL") + " · Nimitta self-test";
   $("#app").innerHTML = '<pre class="selftest">' + esc(result.text) + "</pre>";
@@ -3031,6 +3209,7 @@ if (params.get("selftest") === "1") {
   if (!S.createdAt || S.sessions.some(function (x) { return x.startedAt < S.createdAt; })) {
     S.createdAt = Math.min.apply(null, [S.createdAt || Date.now()].concat(S.sessions.map(function (x) { return x.startedAt; }))); save();
   }
+  S.theme = themeKey(S.theme);
   applyPendingGoal();
   applyTheme(false);
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && S && !SES) { var before = S.goalDays; applyPendingGoal(); if (S.goalDays !== before) render(); } });
