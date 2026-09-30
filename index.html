@@ -1803,8 +1803,8 @@ var TXT = {
   storageWarning: "Your sessions are saved only in this browser, on this phone. Clearing your browser data erases them. Open this page the same way each time.",
   tapSound: "Tap sound",
   noWakeLock: "This browser may let the screen sleep. Set Auto-Lock to Never while you practise.",
-  pasteBack: "Then paste them into a message to the person who sent you this link.",
-  copied: "Copied",
+  shareHint: "This opens your phone's share menu, so you can send your answers to the person who invited you.",
+  copied: "Copied. Paste it into a message to the person who invited you.",
   copyByHand: "Copying did not work here. Select all of the text below and copy it."
 };
 
@@ -1840,6 +1840,8 @@ function loadState() {
     var raw = localStorage.getItem(KEY);
     if (raw) {
       var stored = Object.assign(freshState(), JSON.parse(raw));
+      // D12.4: research consent is off for everyone, including any given before.
+      stored.about.consent = false; stored.about.consentUpdatedAt = null;
       // D11.4: the single onboarding reminder becomes the first of the list.
       if (typeof stored.reminder === "string") {
         if (!stored.reminders.length && stored.onboarded) stored.reminders = [{ id: uuid(), time: stored.reminder, on: true }];
@@ -1964,8 +1966,7 @@ function renderOnboarding() {
       '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
       '<div><div class="label">Gender</div>' + chips("gender", GENDERS) +
       (a.gender === SELF_DESCRIBE ? '<input class="field" id="about-self" autocomplete="off" maxlength="60" style="margin-top:8px" value="' + esc(a.genderSelf || "") + '">' : "") + "</div>" +
-      '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
-      '<label class="check"><input type="checkbox" id="about-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label>';
+      '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>";   // no research consent (D12.4)
     foot = '<button class="primary" data-action="about-continue">Continue</button><button class="textlink" data-action="about-skip">Skip for now</button>';
   } else if (step === 3) {
     skip = '<button class="skip" data-action="onb-next">Skip</button>';
@@ -1985,7 +1986,7 @@ function renderOnboarding() {
     foot = '<button class="primary" data-action="onb-next">Continue</button>';
   } else if (step === 5) {
     body = '<p class="reading">While you practise, your mind will wander. That is not failure — that is the practice.</p>' +
-      '<p class="reading">The moment you notice you have wandered, tap anywhere on the lower half of the screen, then return to the breath.</p>' +
+      '<p class="reading">The moment you notice you have wandered, tap anywhere on the lower half of the screen, then come back to the breath.</p>' +
       '<p class="reading"><strong>Tapping more is not worse. Noticing is the whole skill.</strong></p>' +
       '<p class="reading">To stop at any time, tap Stop at the top of the screen.</p>';
     foot = '<button class="primary" data-action="onb-try">Try it for 60 seconds</button>';
@@ -2007,7 +2008,7 @@ function renderSit() {
   }).join("") + '<button data-action="custom-sheet"><span>Custom</span><span>' + (LENGTHS.indexOf(minutes) < 0 ? "✓" : "") + "</span></button></div>" : "";
   var left = daysLeft(w), change = latestChange();
   var results = completedCount() >= 5
-    ? '<button class="outline" data-action="survey" style="margin-top:16px">Copy my results</button>' : "";
+    ? '<button class="outline" data-action="survey" style="margin-top:16px">Send my answers</button>' : "";
   return '<div class="sit">' +
     '<div class="secondary ink3 num" id="dateline">' + esc(dateLine()) + "</div>" +
     '<h1 class="display">' + posture(S.posture).title + "</h1>" +
@@ -2069,13 +2070,13 @@ function showingUpLine(w) {
 function finishingLine(w) { return "You finished " + w.completed + " of the " + w.started + (w.started === 1 ? " session" : " sessions") + " you started."; }
 function noticingLine(w) {
   if (!w.completed) return null;   // never "0 of 0"
-  return w.present + " of your " + w.completed + " finished " + (w.completed === 1 ? "session" : "sessions") + " had at least one return.";
+  return "In " + w.present + " of your " + w.completed + " finished " + (w.completed === 1 ? "session" : "sessions") + ", you noticed at least once.";
 }
 var SCORE_EXPLANATION = [
   "Your score is out of 100, and it starts again every Monday.",
   "Showing up counts for half — practising on the days you planned.",
   "Finishing counts for 30 — completing the sessions you begin.",
-  "Noticing counts for 20 — marking at least one return in a session.",
+  "Noticing counts for 20 — noticing at least once in a session.",
   "How long you practise never changes your score."
 ];
 function finishedByDay() {
@@ -2109,7 +2110,7 @@ function renderStrip(w, t) {
   }).join("") + "</div>";
 }
 
-/* Week (UX §7.5): the score with its three components and raw fractions, the 30-day grid, returns per sitting. */
+/* Week (UX §7.5): the score with its three components and raw fractions, the 30-day grid, times you noticed. */
 function renderWeek() {
   var t = today(), first = Score.addDays(t, -29);
   if (!kept().length) return '<div class="pad"><h1 class="display">Record</h1></div><div class="empty reading" style="min-height:50vh">Nothing here yet. It starts when you practise.</div>';
@@ -2144,8 +2145,9 @@ function renderWeek() {
     '<div class="hairline" style="margin:32px 0"></div>' +
     '<div class="label">Days practised in the last 30</div><div class="grid30">' + cells + "</div>" + legend +
     '<div class="hairline" style="margin:32px 0"></div>' +
-    '<div class="label">Returns per session</div>' + returnsChart(first, t) +
-    '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. More returns is not worse.</p>' +
+    '<div class="label">Times you noticed</div>' +
+    '<p class="caption ink2" style="margin:-4px 0 12px">Each tap is a moment you noticed your mind had wandered and came back to the breath.</p>' + returnsChart(first, t) +
+    '<p class="caption" style="margin-top:12px">This is a pattern, not a judgment. Noticing more is not worse.</p>' +
     '<div class="hairline" style="margin:32px 0"></div>' + renderMonth(t) +
     '<div class="hairline" style="margin:32px 0 8px"></div>' +
     '<button class="today-line" data-action="history-all" style="font-size:16px;color:var(--ink)"><span>History</span><span>›</span></button></div>';
@@ -2237,6 +2239,7 @@ function renderYou() {
     '<div><div class="title">' + (name ? esc(name) : "Anonymous practitioner") + "</div>" +
     '<div class="secondary ink2" style="margin-top:2px">Test version — everything stays on this phone.</div>' +
     '<div class="secondary ink3" style="margin-top:2px">Member since ' + esc(since) + "</div></div></div>" +
+    '<button class="outline" data-action="start-over-sheet" style="margin-top:16px;color:var(--accent)">Start over as a new tester</button>' +
     '<div class="label" style="margin-top:32px">Your practice</div>' +
     row("Days a week", String(S.goalDays), "you-sheet-goal") +
     row("Session length", S.goalMinutes + " min", "you-sheet-length") +
@@ -2246,7 +2249,6 @@ function renderYou() {
     row("Theme", themeName(S.theme), "you-sheet-theme") +
     row("Bell", bellSet(S.bell).label, "you-sheet-bell") +
     '<div class="label" style="margin-top:24px">Privacy</div>' +
-    row("Use my answers in research", a.consent ? "On" : "Off", "you-research", minor) +
     row("Export my data", null, "you-export") +
     // D11.2: no account here, so no Sign out; Delete account wipes the page and starts again.
     row("Clear history", null, "you-sheet-clear") +
@@ -2289,9 +2291,11 @@ function youSheet(kind) {
     }).join("") + "</div>" +
       (S.reminders.length < MAX_REMINDERS ? '<button class="textlink" data-action="rem-add" style="margin-top:8px">+ Add a reminder</button>' : "");
   } else if (kind === "clear" || kind === "delete") {
-    var c = CONFIRM[kind];
+    var c = CONFIRM[kind], name = (S.about.name || "").trim();
+    // D12.5: to delete, the tester types their own name; with no name, DELETE.
+    if (kind === "delete" && name) c = Object.assign({}, c, { word: name, prompt: "Type your name, " + name + ", to confirm." });
     html = '<div class="confirm"><h2 class="title">' + c.title + "</h2>" + c.lines.map(function (l) { return '<p class="reading" style="margin-top:12px">' + l + "</p>"; }).join("") +
-      '<p class="secondary ink2" style="margin-top:16px">' + c.prompt + '</p><input class="field" id="confirm-word" data-word="' + c.word + '" autocomplete="off" autocapitalize="characters" spellcheck="false" style="margin-top:8px" aria-label="' + c.prompt + '">' +
+      '<p class="secondary ink2" style="margin-top:16px">' + esc(c.prompt) + '</p><input class="field" id="confirm-word" data-word="' + esc(c.word) + '" autocomplete="off" autocapitalize="' + (c.word === c.word.toUpperCase() ? "characters" : "words") + '" spellcheck="false" style="margin-top:8px" aria-label="' + esc(c.prompt) + '">' +
       '<button class="primary' + (kind === "delete" ? " danger-fill" : "") + '" id="confirm-go" data-action="confirm-' + kind + '" style="margin-top:16px" disabled>' + c.action + "</button>" +
       '<button class="outline" data-action="close-sheet" style="margin-top:8px">Cancel</button></div>';
   } else if (kind === "theme") {
@@ -2314,8 +2318,7 @@ function youSheet(kind) {
       '<div><div class="label">Age</div>' + chips("age", AGES) + "</div>" +
       '<div><div class="label">Gender</div>' + chips("gender", GENDERS) +
       (a.gender === SELF_DESCRIBE ? '<input class="field" id="you-self" autocomplete="off" maxlength="60" style="margin-top:8px" value="' + esc(a.genderSelf || "") + '">' : "") + "</div>" +
-      '<div><div class="label">Work</div>' + chips("work", WORK) + "</div>" +
-      '<label class="check"><input type="checkbox" id="you-consent"' + (a.consent ? " checked" : "") + '><span>You may use these answers, together with my practice data and without my name, in anonymous research about meditation habits.</span></label></div>';
+      '<div><div class="label">Work</div>' + chips("work", WORK) + "</div></div>";
   }
   var open = !$("#sheet").hidden, sheet = $("#sheet .sheet"), top = sheet ? sheet.scrollTop : 0;
   openSheet(html);
@@ -2350,7 +2353,7 @@ function applyPendingGoal() {
 /* History (D6.6): sittings by day, newest first. Discarded sittings never appear. */
 function historyRow(s) {
   var at = new Date(s.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  var returns = s.tapCount === 1 ? "1 return" : s.tapCount + " returns";
+  var returns = s.tapCount === 1 ? "Noticed once" : "Noticed " + s.tapCount + " times";   // D12.1
   return at + " · " + posture(s.posture).label + " · " + Math.round(s.plannedSeconds / 60) + " min · " +
     (s.state === "completed" ? "Completed" : "Unfinished") + " · " + returns + (s.interval ? " · Interval bell every " + s.interval + " min" : "");
 }
@@ -2534,12 +2537,12 @@ var POSTURE_SENTENCE = {
 var CONFIRM = {
   clear: { title: "Clear all history?", word: "CLEAR", action: "Clear history", prompt: "Type CLEAR to confirm.",
            lines: ["Every session, check-in and score on this phone will be deleted. Your settings stay. This cannot be undone."] },
-  delete: { title: "Delete your account?", word: "DELETE", action: "Delete account", prompt: "Type DELETE to confirm.",
+  delete: { title: "Delete your account?", word: "DELETE", action: "Delete account", prompt: "Type DELETE to confirm.",   // or the name (D12.5)
             lines: ["Everything on this phone will be permanently deleted. This cannot be undone."] }
 };
 function confirmTyped() {
   var field = $("#confirm-word");
-  return !!field && field.value.trim().toUpperCase() === field.dataset.word;
+  return !!field && field.value.trim().toUpperCase() === field.dataset.word.trim().toUpperCase();
 }
 
 var BELL_SETS = [
@@ -2891,8 +2894,9 @@ function openSurvey() {
         }).join("") + "</div>";
     }).join("") +
     '<div class="label" style="margin-top:32px">Anything else?</div><textarea class="field" id="survey-notes">' + esc(sv.notes) + "</textarea>" +
-    '<button class="primary" data-action="copy-results" id="copyButton" style="margin-top:32px">Copy my results</button>' +
-    '<p class="reading" style="margin-top:16px;font-size:17px">' + esc(TXT.pasteBack) + "</p>" +
+    '<p class="reading" style="margin-top:32px;font-size:17px">' + esc(TXT.shareHint) + "</p>" +
+    '<button class="primary" data-action="send-answers" style="margin-top:16px">Send my answers</button>' +
+    '<p class="reading" id="copiedNote" style="margin-top:16px;font-size:17px" hidden>' + esc(TXT.copied) + "</p>" +
     '<div id="copyFallback" hidden><p class="caption" style="margin-top:16px">' + esc(TXT.copyByHand) + '</p><textarea class="field" id="resultsText" style="height:220px;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px"></textarea></div>' +
     "</div>");
 }
@@ -2927,17 +2931,38 @@ function resultsText() {
   return lines.join("\n");
 }
 
-function copyResults() {
+/* D12.3: the phone's own share menu (Messages, LINE, Mail) with the answers as text. Only where sharing is not
+   available, the text is copied instead. Resolves true once the answers have gone to the share menu. */
+function sendAnswers() {
   var notes = $("#survey-notes"); if (notes && S.survey) { S.survey.notes = notes.value; save(); }
-  var text = resultsText(), button = $("#copyButton");
-  function done() { button.textContent = TXT.copied; }
-  function fallback() {
-    var box = $("#resultsText"); $("#copyFallback").hidden = false; box.value = text;
+  var text = resultsText();
+  if (navigator.share) {
+    return navigator.share({ text: text }).then(function () { return true; }, function (e) {
+      if (e && e.name === "AbortError") return false;   // the tester closed the menu
+      return copyAnswers(text);
+    });
+  }
+  return Promise.resolve(copyAnswers(text));
+}
+/* Returns false: copying is not sending, so a caller waiting to start over leaves that to the tester. */
+function copyAnswers(text) {
+  function done() { var note = $("#copiedNote"); if (note) note.hidden = false; }
+  function byHand() {
+    var box = $("#resultsText"); if (!box) return;
+    $("#copyFallback").hidden = false; box.value = text;
     box.focus(); box.select(); box.setSelectionRange(0, text.length);
     try { if (document.execCommand("copy")) done(); } catch (e) {}
   }
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
-  else fallback();
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, byHand);
+  else byHand();
+  return false;
+}
+
+/* D12.2: two testers may share a phone. Erases everything, as Delete account does, and starts at onboarding. */
+function startOver() {
+  try { localStorage.removeItem(KEY); } catch (e) {}
+  memoryCopy = null; S = freshState(); save(); closeLayer(); closeSheet(); UI.youSheet = null; UI.tab = "sit";
+  applyTheme(false); render(); window.scrollTo(0, 0);
 }
 
 /* ---------------------------------------------------------------------------------------------------------------
@@ -2968,17 +2993,16 @@ var actions = {
       S.step = 3; save(); render(); window.scrollTo(0, 0);
       return;
     }
-    UI.draftAbout.name = $("#about-name").value; UI.draftAbout.consent = $("#about-consent").checked;
+    UI.draftAbout.name = $("#about-name").value;
     var self = $("#about-self"); if (self) UI.draftAbout.genderSelf = self.value;
     UI.draftAbout[f] = UI.draftAbout[f] === v ? null : v; var y = window.scrollY; render(); window.scrollTo(0, y);
   },
   "about-continue": function () {
-    var d = UI.draftAbout, consent = $("#about-consent").checked;
+    var d = UI.draftAbout;
     d.name = $("#about-name").value.trim();
     var self = $("#about-self");
     d.genderSelf = d.gender === SELF_DESCRIBE && self ? self.value.trim().slice(0, 60) : "";
-    if (consent !== S.about.consent) d.consentUpdatedAt = new Date().toISOString();   // changing the box stamps the time (R5)
-    d.consent = consent;
+    d.consent = false; d.consentUpdatedAt = null;   // D12.4: no research use
     S.about = d; S.step = 3; save(); render(); window.scrollTo(0, 0);
   },
   "about-skip": function () { S.step = 3; save(); render(); window.scrollTo(0, 0); },
@@ -3034,10 +3058,6 @@ var actions = {
   "you-bell": function (el) {
     S.bell = el.dataset.v; save(); render(); youSheet("bell");
     unlockAudio(); strike("opening");   // each choice plays its opening sound once (D10.1)
-  },
-  "you-research": function () {
-    if (S.about.age === UNDER_18) return;   // never set for someone under 18 (D5.1)
-    S.about.consent = !S.about.consent; S.about.consentUpdatedAt = new Date().toISOString(); save(); render();
   },
   "you-export": function () { exportData(); },
   "you-pick": function (el) {
@@ -3100,7 +3120,17 @@ var actions = {
     S.survey.answers[q] = v; save();
     Array.prototype.forEach.call(document.querySelectorAll('[data-action=survey-answer][data-q="' + q + '"]'), function (b) { b.classList.toggle("on", Number(b.dataset.v) === v); });
   },
-  "copy-results": function () { copyResults(); },
+  "send-answers": function () { sendAnswers(); },
+  "start-over-sheet": function () {
+    openSheet('<p class="reading">Send your answers before starting over? Everything on this phone will be erased.</p>' +
+      '<button class="primary" data-action="start-over-send" style="margin-top:24px">Send my answers first</button>' +
+      '<p class="reading" id="copiedNote" style="margin-top:12px;font-size:17px" hidden>' + esc(TXT.copied) + "</p>" +
+      '<div id="copyFallback" hidden><p class="caption" style="margin-top:12px">' + esc(TXT.copyByHand) + '</p><textarea class="field" id="resultsText" style="height:160px;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px"></textarea></div>' +
+      '<button class="outline" data-action="start-over" style="margin-top:8px">Start over</button>' +
+      '<button class="outline" data-action="close-sheet" style="margin-top:8px">Cancel</button>');
+  },
+  "start-over-send": function () { sendAnswers().then(function (sent) { if (sent) startOver(); }); },
+  "start-over": function () { startOver(); },
   "close-survey": function () { var n = $("#survey-notes"); if (n && S.survey) { S.survey.notes = n.value; save(); } closeLayer(); render(); }
 };
 document.addEventListener("click", function (e) {
@@ -3117,10 +3147,6 @@ document.addEventListener("input", function (e) {
 document.addEventListener("change", function (e) {
   if (e.target.dataset && e.target.dataset.rem && e.target.value) {
     S.reminders.forEach(function (r) { if (r.id === e.target.dataset.rem) r.time = e.target.value; }); save(); render();
-  }
-  if (e.target.id === "you-consent") {
-    if (S.about.age === UNDER_18) { e.target.checked = false; return; }   // never set for someone under 18 (D5.1)
-    S.about.consent = e.target.checked; S.about.consentUpdatedAt = new Date().toISOString(); save(); render();
   }
 });
 
