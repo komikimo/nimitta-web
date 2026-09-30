@@ -2306,10 +2306,6 @@ function youSheet(kind) {
     html = '<h2 class="title">Bell</h2><div class="chips" style="margin-top:16px">' + BELL_SETS.map(function (b) {
       return '<button class="' + (S.bell === b.key ? "on" : "") + '" data-action="you-bell" data-v="' + b.key + '">' + b.label + "</button>";
     }).join("") + "</div>";
-  } else if (kind === "posture") {
-    html = '<h2 class="title">Usual posture</h2><div class="postures" style="justify-content:flex-start;margin:16px 0 0">' + POSTURES.map(function (p) {
-      return '<button class="' + (S.posture === p.key ? "on" : "") + '" data-action="you-posture" data-v="' + p.key + '">' + p.label + "</button>";
-    }).join("") + "</div>";
   } else {
     html = '<h2 class="title">About you</h2><div class="onb-body top" style="padding:12px 0 0">' +
       '<p class="secondary ink2" style="line-height:1.45">All optional. None of it is shown to anyone else, and none of it changes your score.</p>' +
