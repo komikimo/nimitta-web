@@ -157,6 +157,10 @@ textarea.field{height:110px;padding:10px 12px;resize:vertical;line-height:1.4}
 .variant>h2{font-family:var(--sans);font-size:15px;font-weight:600;padding:0 24px 12px}
 .variant .frame{max-width:480px;margin:0 auto;border-top:1px solid var(--line)}
 .variant .sit{min-height:0}
+.theme-row{justify-content:space-between}
+.theme-name{display:flex;align-items:center;gap:12px}
+.swatch{display:inline-flex;align-items:center;justify-content:center;gap:3px;width:34px;height:22px;border:1px solid;border-radius:4px;flex:none}
+.swatch i{width:9px;height:9px;border-radius:50%;display:block}
 .chart text{font-size:10px;fill:var(--ink3);font-family:var(--sans)}
 
 /* Layers */
@@ -1803,6 +1807,7 @@ var TXT = {
   storageWarning: "Your sessions are saved only in this browser, on this phone. Clearing your browser data erases them. Open this page the same way each time.",
   tapSound: "Tap sound",
   noWakeLock: "This browser may let the screen sleep. Set Auto-Lock to Never while you practise.",
+  emailUse: "Your email is used only to label your answers when you send them.",
   shareHint: "This opens your phone's share menu, so you can send your answers to the person who invited you.",
   copied: "Copied. Paste it into a message to the person who invited you.",
   copyByHand: "Copying did not work here. Select all of the text below and copy it."
@@ -1817,10 +1822,10 @@ function freshState() {
   return {
     v: 1, tester: testerCode(), onboarded: false, step: 0,
     about: { name: "", age: null, gender: null, genderSelf: "", work: null, consent: false, consentUpdatedAt: null },
-    experience: null, goalDays: 7, goalMinutes: 20, reminders: [],
+    experience: null, goalDays: 7, goalMinutes: 20, reminders: [], email: "",
     tapSound: true, warned: false, sessions: [], pendingCheckIn: null, interrupted: false,
     checkpoint: null, survey: null, discards: [], posture: "sitting", pendingGoal: null, pendingFrom: null, createdAt: Date.now(), interval: null,
-    theme: "sapphire", bell: "temple-bowl"
+    theme: "sapphire", bell: "temple-bowl", followSystem: true, night: false
   };
 }
 function testerCode() {
@@ -1948,9 +1953,13 @@ function renderOnboarding() {
       '<p class="reading ink2">We can see whether you practised, whether you stayed, and whether you kept noticing.<br>We cannot see your mind. No app can. We will never pretend to.</p>';
     foot = '<button class="primary" data-action="onb-next">Begin</button><button class="textlink" data-action="why">Why Nimitta?</button>';
   } else if (step === 1) {
+    // D14.3: an email is required, only to label the answers this tester sends. No password field, ever: the page
+    // has no real accounts, and people reuse real passwords.
     body = '<h1 class="title">Your account</h1>' +
-      '<p class="reading">Your practice syncs to your account, so you keep it if you change phone, and so you can join a league.</p>';
-    foot = '<button class="primary" data-action="onb-next">Continue</button>';   // the app shows Sign in with Apple here
+      '<p class="reading">Your practice syncs to your account, so you keep it if you change phone, and so you can join a league.</p>' +
+      emailField("onb-email") +
+      '<p class="caption" style="margin-top:6px">' + esc(TXT.emailUse) + "</p>";
+    foot = '<button class="primary" data-action="onb-email-next">Continue</button>';   // the app shows its sign-in page here
   } else if (step === 2) {
     top = true;
     var a = UI.draftAbout;
@@ -2239,14 +2248,14 @@ function renderYou() {
     '<div><div class="title">' + (name ? esc(name) : "Anonymous practitioner") + "</div>" +
     '<div class="secondary ink2" style="margin-top:2px">Test version — everything stays on this phone.</div>' +
     '<div class="secondary ink3" style="margin-top:2px">Member since ' + esc(since) + "</div></div></div>" +
-    '<button class="outline" data-action="start-over-sheet" style="margin-top:16px;color:var(--accent)">Start over as a new tester</button>' +
+    '<button class="outline" data-action="start-over-sheet" style="margin-top:16px;color:var(--accent)">Change user</button>' +
     '<div class="label" style="margin-top:32px">Your practice</div>' +
     row("Days a week", String(S.goalDays), "you-sheet-goal") +
     row("Session length", S.goalMinutes + " min", "you-sheet-length") +
     row("Reminders", remindersValue(), "you-sheet-reminders") +
     '<div style="margin-top:24px"></div>' + row("About you", null, "you-sheet-about") +
     '<div class="label" style="margin-top:24px">Appearance</div>' +
-    row("Theme", themeName(S.theme), "you-sheet-theme") +
+    row("Theme", followsSystem() ? themeName(S.theme) : choiceName(S.theme, S.night), "you-sheet-theme") +
     row("Bell", bellSet(S.bell).label, "you-sheet-bell") +
     '<div class="label" style="margin-top:24px">Privacy</div>' +
     row("Export my data", null, "you-export") +
@@ -2299,9 +2308,18 @@ function youSheet(kind) {
       '<button class="primary' + (kind === "delete" ? " danger-fill" : "") + '" id="confirm-go" data-action="confirm-' + kind + '" style="margin-top:16px" disabled>' + c.action + "</button>" +
       '<button class="outline" data-action="close-sheet" style="margin-top:8px">Cancel</button></div>';
   } else if (kind === "theme") {
-    html = '<h2 class="title">Theme</h2><div class="chips" style="margin-top:16px">' + THEMES.map(function (t) {
-      return '<button class="' + (S.theme === t.key ? "on" : "") + '" data-action="you-theme" data-v="' + t.key + '">' + t.label + "</button>";
-    }).join("") + "</div>";
+    var night = currentNight(), chosen = themeKey(S.theme);
+    html = '<h2 class="title">Theme</h2><div style="margin-top:12px">' + THEMES.map(function (t) {
+      return [false, true].map(function (n) {
+        var pal = PALETTES[t.key][n ? "dark" : "light"], on = t.key === chosen && n === night;
+        return '<button class="you-row theme-row" data-action="you-theme" data-v="' + t.key + '" data-night="' + (n ? 1 : 0) + '" aria-pressed="' + on + '">' +
+          '<span class="theme-name"><span class="swatch" aria-hidden="true" style="background:' + pal[0] + ";border-color:" + pal[5] + '">' +
+          '<i style="background:' + pal[6] + '"></i><i style="background:' + pal[9] + '"></i></span>' + esc(choiceName(t.key, n)) + "</span>" +
+          '<span style="color:var(--accent2)">' + (on ? "✓" : "") + "</span></button>";
+      }).join("");
+    }).join("") + "</div>" +
+      '<div class="you-row" style="border-bottom:0;margin-top:8px"><span>Follow system light and dark</span>' +
+      '<button class="switch' + (followsSystem() ? " on" : "") + '" role="switch" aria-checked="' + followsSystem() + '" aria-label="Follow system light and dark" data-action="theme-follow"></button></div>';
   } else if (kind === "bell") {
     html = '<h2 class="title">Bell</h2><div class="chips" style="margin-top:16px">' + BELL_SETS.map(function (b) {
       return '<button class="' + (S.bell === b.key ? "on" : "") + '" data-action="you-bell" data-v="' + b.key + '">' + b.label + "</button>";
@@ -2536,6 +2554,21 @@ var CONFIRM = {
   delete: { title: "Delete your account?", word: "DELETE", action: "Delete account", prompt: "Type DELETE to confirm.",   // or the name (D12.5)
             lines: ["Everything on this phone will be permanently deleted. This cannot be undone."] }
 };
+/* The same check as AccountModel.looksLikeEmail in the app. */
+function looksLikeEmail(text) {
+  var parts = text.split("@");
+  if (parts.length !== 2 || !parts[0] || /\s/.test(text)) return false;
+  var domain = parts[1].split(".");
+  return domain.length >= 2 && domain.every(function (p) { return p.length > 0; });
+}
+/* The email field of the Your account screen and the questions page, with its error line. */
+function emailField(id) {
+  var value = UI.emailDraft !== null && UI.emailDraft !== undefined ? UI.emailDraft : (S.email || "");
+  return '<div style="margin-top:16px"><div class="label">Email</div><input class="field" type="email" id="' + id + '" autocomplete="email" ' +
+    'autocapitalize="off" spellcheck="false" value="' + esc(value) + '">' +
+    (UI.emailError ? '<p class="secondary ink2" style="margin-top:6px">That doesn\'t look like an email address.</p>' : "") + "</div>";
+}
+
 function confirmTyped() {
   var field = $("#confirm-word");
   return !!field && field.value.trim().toUpperCase() === field.dataset.word.trim().toUpperCase();
@@ -2603,6 +2636,12 @@ var PALETTES = {
 var DANGER = { light: "#B3261E", dark: "#F2837B" };
 function themeKey(key) { return PALETTES[key] ? key : "sapphire"; }   // a D10 theme (Jade) falls back to Sapphire
 function themeName(key) { return THEMES.filter(function (t) { return t.key === themeKey(key); })[0].label; }
+/* D14.1: six choosable themes — each family by day and by night. */
+function choiceName(key, night) { return themeName(key) + (night ? " Night" : ""); }
+function systemIsDark() { return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); }
+function followsSystem() { return S.followSystem !== false; }
+/* The theme showing now: with "Follow system light and dark" on, the phone picks day or night. */
+function currentNight() { return followsSystem() ? systemIsDark() : !!S.night; }
 function paletteVars(key, mode) {
   return TOKENS.map(function (t, i) { return "--" + t + ":" + PALETTES[key][mode][i]; }).join(";") + ";--danger:" + DANGER[mode] + ";color-scheme:" + mode;
 }
@@ -2615,10 +2654,13 @@ function applyTheme(fade) {
     themeFade = setTimeout(function () { root.classList.remove("theming"); }, 400);
   }
   if (!style) { style = document.createElement("style"); style.id = "theme-vars"; document.head.appendChild(style); }
-  style.textContent = ":root{" + paletteVars(key, "light") + "}@media (prefers-color-scheme:dark){:root{" + paletteVars(key, "dark") + "}}";
+  style.textContent = followsSystem()
+    ? ":root{" + paletteVars(key, "light") + "}@media (prefers-color-scheme:dark){:root{" + paletteVars(key, "dark") + "}}"
+    : ":root{" + paletteVars(key, S.night ? "dark" : "light") + "}";   // the exact theme chosen stays (D14.1)
   // The browser bar follows the theme's ground, except while a session holds it at #05080C.
   document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
-    var dark = /dark/.test(m.getAttribute("media") || ""), bg = PALETTES[key][dark ? "dark" : "light"][0];
+    var dark = followsSystem() ? /dark/.test(m.getAttribute("media") || "") : !!S.night;
+    var bg = PALETTES[key][dark ? "dark" : "light"][0];
     var sessionColor = m.dataset.original && m.content !== m.dataset.original;
     m.dataset.original = bg;
     if (!sessionColor) m.content = bg;
@@ -2890,6 +2932,8 @@ function openSurvey() {
         }).join("") + "</div>";
     }).join("") +
     '<div class="label" style="margin-top:32px">Anything else?</div><textarea class="field" id="survey-notes">' + esc(sv.notes) + "</textarea>" +
+    emailField("survey-email") +
+    '<p class="caption" style="margin-top:6px">' + esc(TXT.emailUse) + "</p>" +
     '<p class="reading" style="margin-top:32px;font-size:17px">' + esc(TXT.shareHint) + "</p>" +
     '<button class="primary" data-action="send-answers" style="margin-top:16px">Send my answers</button>' +
     '<p class="reading" id="copiedNote" style="margin-top:16px;font-size:17px" hidden>' + esc(TXT.copied) + "</p>" +
@@ -2905,6 +2949,7 @@ function resultsText() {
   var completed = sessions.filter(function (s) { return s.state === "completed"; }).length;
   var lines = [
     "Nimitta Phase 0 results",
+    "email " + (S.email || "-"),
     "tester " + S.tester + " · web 1 · " + device + " · wake lock " + ("wakeLock" in navigator ? "yes" : "no") + " · tap sound " + (S.tapSound ? "on" : "off"),
     "goal " + S.goalDays + " days a week, " + S.goalMinutes + " min · experience: " + (S.experience === null ? "-" : EXPERIENCE[S.experience]),
     "",
@@ -2931,6 +2976,13 @@ function resultsText() {
    available, the text is copied instead. Resolves true once the answers have gone to the share menu. */
 function sendAnswers() {
   var notes = $("#survey-notes"); if (notes && S.survey) { S.survey.notes = notes.value; save(); }
+  // D14.3: the answers go out labelled with the tester's email, which is required.
+  var field = $("#survey-email");
+  if (field) {
+    var email = field.value.trim();
+    if (!looksLikeEmail(email)) { UI.emailError = true; UI.emailDraft = email; openSurvey(); return Promise.resolve(false); }
+    UI.emailError = false; UI.emailDraft = null; S.email = email; save();
+  }
   var text = resultsText();
   if (navigator.share) {
     return navigator.share({ text: text }).then(function () { return true; }, function (e) {
@@ -2954,7 +3006,8 @@ function copyAnswers(text) {
   return false;
 }
 
-/* D12.2: two testers may share a phone. Erases everything, as Delete account does, and starts at onboarding. */
+/* D12.2, D14.2 "Change user": two testers may share a phone. Erases everything, as Delete account does, and starts
+   at onboarding. */
 function startOver() {
   try { localStorage.removeItem(KEY); } catch (e) {}
   memoryCopy = null; S = freshState(); save(); closeLayer(); closeSheet(); UI.youSheet = null; UI.tab = "sit";
@@ -2973,6 +3026,12 @@ var actions = {
   "why": function () { openSheet(WHY); },
   "close-sheet": function () { closeSheet(); UI.youSheet = null; if (!S.warned && S.onboarded) { S.warned = true; save(); } },
 
+  "onb-email-next": function () {
+    var field = $("#onb-email"), email = field ? field.value.trim() : "";
+    if (!looksLikeEmail(email)) { UI.emailError = true; UI.emailDraft = email; render(); return; }
+    UI.emailError = false; UI.emailDraft = null; S.email = email;
+    S.step = 2; UI.draftAbout = Object.assign({}, S.about); save(); render(); window.scrollTo(0, 0);
+  },
   "onb-next": function () {
     if (S.step === 4 && UI.customOpen) {
       var n = customMinutes($("#onb-custom").value);
@@ -3050,7 +3109,12 @@ var actions = {
   "you-sheet-about": function () { youSheet("about"); },
   "you-sheet-theme": function () { youSheet("theme"); },
   "you-sheet-bell": function () { youSheet("bell"); },
-  "you-theme": function (el) { S.theme = el.dataset.v; save(); applyTheme(true); render(); youSheet("theme"); },
+  "you-theme": function (el) { S.theme = el.dataset.v; S.night = el.dataset.night === "1"; save(); applyTheme(true); render(); youSheet("theme"); },
+  "theme-follow": function () {
+    if (followsSystem()) { S.night = systemIsDark(); S.followSystem = false; }   // turning it off keeps what shows now
+    else S.followSystem = true;
+    save(); applyTheme(true); render(); youSheet("theme");
+  },
   "you-bell": function (el) {
     S.bell = el.dataset.v; save(); render(); youSheet("bell");
     unlockAudio(); strike("opening");   // each choice plays its opening sound once (D10.1)
@@ -3118,11 +3182,11 @@ var actions = {
   },
   "send-answers": function () { sendAnswers(); },
   "start-over-sheet": function () {
-    openSheet('<p class="reading">Send your answers before starting over? Everything on this phone will be erased.</p>' +
+    openSheet('<p class="reading">Send your answers before changing user? Everything on this phone will be erased.</p>' +
       '<button class="primary" data-action="start-over-send" style="margin-top:24px">Send my answers first</button>' +
       '<p class="reading" id="copiedNote" style="margin-top:12px;font-size:17px" hidden>' + esc(TXT.copied) + "</p>" +
       '<div id="copyFallback" hidden><p class="caption" style="margin-top:12px">' + esc(TXT.copyByHand) + '</p><textarea class="field" id="resultsText" style="height:160px;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:12px"></textarea></div>' +
-      '<button class="outline" data-action="start-over" style="margin-top:8px">Start over</button>' +
+      '<button class="outline" data-action="start-over" style="margin-top:8px">Change user</button>' +
       '<button class="outline" data-action="close-sheet" style="margin-top:8px">Cancel</button>');
   },
   "start-over-send": function () { sendAnswers().then(function (sent) { if (sent) startOver(); }); },
@@ -3189,7 +3253,7 @@ function showThemes() {
   $("#tabbar").hidden = true;
   $("#app").innerHTML = THEMES.map(function (theme) {
     return ["light", "dark"].map(function (mode) {
-      return '<section class="variant" style="' + paletteVars(theme.key, mode) + '"><h2>' + theme.label + " · " + mode + "</h2>" +
+      return '<section class="variant" style="' + paletteVars(theme.key, mode) + '"><h2>' + esc(choiceName(theme.key, mode === "dark")) + "</h2>" +
         '<div class="frame">' + renderSit() + '</div><div class="frame">' + renderWeek() + "</div></section>";
     }).join("");
   }).join("");
@@ -3234,6 +3298,9 @@ if (params.get("themes") === "1") {
   S.theme = themeKey(S.theme);
   applyPendingGoal();
   applyTheme(false);
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+    if (UI.youSheet === "theme") youSheet("theme");
+  });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && S && !SES) { var before = S.goalDays; applyPendingGoal(); if (S.goalDays !== before) render(); } });
   recoverCheckpoint();
   if (S.step === 2 && !UI.draftAbout) UI.draftAbout = Object.assign({}, S.about);
